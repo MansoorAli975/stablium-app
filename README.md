@@ -1,3 +1,16 @@
+### About this project ###
+
+1. (Relative Stability) Anchored or Pegged -> @1.00 (Not doing floating this time)
+    1- Chainlink Price Feed.
+    2- Set  function to exchange ETH & BTC -> $$$
+2. Stability Mechanism (Minting): Algorithmic (Decentralized)
+    1- People can only mint the stablecoin with enough collateral (coded)
+3. Collateral: Exogenous (Crypto)
+    1- wETH (w = wrapped ERC20)
+    2- wBTC
+
+
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
@@ -13,7 +26,7 @@ Foundry consists of:
 
 https://book.getfoundry.sh/
 
-## Usage
+## Usag
 
 ### Build
 
