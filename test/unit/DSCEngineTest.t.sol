@@ -6,7 +6,9 @@ import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
-import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20Mock.sol";
+//import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20/Mock.sol";
+//import "@openzeppelin/contracts/mocks/ERC20/Mock.sol";
+import "@openzeppelin/contracts/mocks/ERC20Mock.sol"; // Correct import for the ERC20 mo
 
 contract DSCEngineTest is Test {
 

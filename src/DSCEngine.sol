@@ -2,8 +2,27 @@
 pragma solidity ^0.8.18;
 
 import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+////import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+////import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
+// import "../lib/openzeppelin-contracts/contracts/mocks/ERC20/Mock.sol";
+// import "../lib/openzeppelin-contracts/contracts/security/ReentrancyGuard.sol";
+
+// import "@openzeppelin/contracts/mocks/ERC20/Mock.sol";
+// import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+// Importing the ERC20 interface
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+// Importing the ReentrancyGuard
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
+// Importing a mock ERC20 contract
+import "@openzeppelin/contracts/mocks/ERC20Mock.sol"; // Use this if you want to mock ERC20
+
+//import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 //import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 

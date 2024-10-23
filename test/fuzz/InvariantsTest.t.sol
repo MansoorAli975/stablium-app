@@ -15,10 +15,10 @@ contract InvariantsTest is StdInvariant, Test {
 
 DeployDSC deployer;
 DSCEngine dsce;
-    function setUp() external {
+    // function setUp() external {
 
-        deployer = new DeployDSC();
-        dsce = deployer.run();
-    }
+    //     deployer = new DeployDSC();
+    //     dsce = deployer.run();
+    // }
 
 }
