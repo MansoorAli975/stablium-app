@@ -5,6 +5,7 @@
 //   2. Getter view functions should never revert.
 
 pragma solidity ^0.8.18;
+
 import {Test} from "forge-std/Test.sol";
 import {StdInvariant} from "forge-std/StdInvariant.sol";
 import {DeployDSC} from "../../script/DeployDSC.s.sol";
@@ -17,22 +18,20 @@ import {Handler} from "./Handler.t.sol";
 import {console} from "forge-std/console.sol";
 
 contract InvariantsTest is StdInvariant, Test {
-
-DeployDSC deployer;
-DSCEngine dsce;
-DecentralizedStableCoin dsc;    
-HelperConfig config;
-address weth;
-address wbtc;
-Handler handler;
+    DeployDSC deployer;
+    DSCEngine dsce;
+    DecentralizedStableCoin dsc;
+    HelperConfig config;
+    address weth;
+    address wbtc;
+    Handler handler;
 
     function setUp() external {
-
         deployer = new DeployDSC();
         (dsc, dsce, config) = deployer.run();
-        (,, weth,wbtc,) = config.activeNetworkConfig();
+        (,, weth, wbtc,) = config.activeNetworkConfig();
         //targetContract(address(dsce));
-        handler = new Handler(dsce,dsc);
+        handler = new Handler(dsce, dsc);
         targetContract(address(handler));
     }
 
@@ -47,9 +46,9 @@ Handler handler;
         console.log("weth value: ", wethValue);
         console.log("wbtc value: ", wbtcValue);
         console.log("total supply: ", totalSupply);
-        console.log("Times mint called: ", handler. timesMintIsCalled());
+        console.log("Times mint called: ", handler.timesMintIsCalled());
 
-        assert (wethValue + wbtcValue >= totalSupply);
+        assert(wethValue + wbtcValue >= totalSupply);
     }
 
     function invariant_gettersShouldNotRevert() public view {
