@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import {DecentralizedStableCoin} from "./DecentralizedStableCoin.sol";
+import {Stablium} from "./Stablium.sol";
 
 ////import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 ////import "../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
@@ -28,7 +28,7 @@ import "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/Aggrega
 import {OracleLib} from "./libraries/OracleLib.sol";
 
 /*
- * @title               DSCEngine
+ * @title               STBEngine
  * @author              Mansoor Ali
  * 
  * This system is designed to be as minimal as possible, 
@@ -37,23 +37,23 @@ import {OracleLib} from "./libraries/OracleLib.sol";
  * - Exogenous collateral
  * - Dollar Pegged
  * It is similar to DAI if DAI had no governance, no fees and was only backed by WETH and WBTC.
- * Our DSC system should always be "overcollateralized". At no point should the value of all collateral <= the $ backed value of all the DSC.
+ * Our STB system should always be "overcollateralized". At no point should the value of all collateral <= the $ backed value of all the STB.
 
-    @notice This contract is the core of DCS system. It handles all the logic for mining and redeeming DSC, as well as depositing & withdrawing collateral.
+    @notice This contract is the core of DCS system. It handles all the logic for mining and redeeming STB, as well as depositing & withdrawing collateral.
      @notice This contract is very loosely based on the MarkerDAO DSS (DAI) system
     
     (note to self: other one is RAI) 
 */
-contract DSCEngine is ReentrancyGuard {
-    error DSCEngine__NeedsMoreThanZero();
-    error DSCEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
-    error DSCEngine__NotAllowedToken();
-    error DSCEngine__TransferFailed();
-    error DSCEngine__BreaksHealthFactor(uint256 userHealthFactor);
-    error DSCEngine__MintFailed();
-    error DSCEngine__HealthFactorOk();
-    error DSCEngine__HealthFactorNotImproved();
-    error DSCEngine__NotAllowedZeroAddress();
+contract STBEngine is ReentrancyGuard {
+    error STBEngine__NeedsMoreThanZero();
+    error STBEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
+    error STBEngine__NotAllowedToken();
+    error STBEngine__TransferFailed();
+    error STBEngine__BreaksHealthFactor(uint256 userHealthFactor);
+    error STBEngine__MintFailed();
+    error STBEngine__HealthFactorOk();
+    error STBEngine__HealthFactorNotImproved();
+    error STBEngine__NotAllowedZeroAddress();
 
     // TYPE//
 
@@ -71,12 +71,12 @@ contract DSCEngine is ReentrancyGuard {
     //mapping (address => bool) private s_tokenToAllowed; not this time cuz gonna need pricefeed anyway
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
-    mapping(address user => uint256 amountDscMinted) private s_DSCMinted;
+    mapping(address user => uint256 amountStbMinted) private s_STBMinted;
     address[] private s_collateralTokens;
     //address weth;
     //address wbtc;
 
-    DecentralizedStableCoin private immutable i_dsc;
+    Stablium private immutable i_stb;
 
     //Events:
     event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
@@ -86,14 +86,14 @@ contract DSCEngine is ReentrancyGuard {
 
     // modifier moreThanZero(uint256 amount) {
     //     if (amount == 0) {
-    //         revert DSCEngine__NeedsMoreThanZero();
+    //         revert STBEngine__NeedsMoreThanZero();
     //     }
     //     _;
     // }
 
     modifier moreThanZero(uint256 amount) {
     if (amount == 0) {
-        revert DSCEngine__NeedsMoreThanZero();
+        revert STBEngine__NeedsMoreThanZero();
     }
     emit DebugAmount(amount); // Add a debug event for the amount
     _;
@@ -103,21 +103,21 @@ event DebugAmount(uint256 amount);
 
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0)) {
-            revert DSCEngine__NotAllowedToken();
+            revert STBEngine__NotAllowedToken();
         }
         _;
     }
 
-    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address dscAddress) {
+    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address stbAddress) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
-            revert DSCEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
+            revert STBEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
         }
 
         for (uint256 i = 0; i < tokenAddresses.length; i++) {
             s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(tokenAddresses[i]);
         }
-        i_dsc = DecentralizedStableCoin(dscAddress);
+        i_stb = Stablium(stbAddress);
     }
 
     //External Functions:
@@ -125,16 +125,16 @@ event DebugAmount(uint256 amount);
     /*
      *@param tokenCollateralAddress The address of token to deposit as collateral
      *@param amountCollateral The amount of collateral to deposit
-     *@param amountDscToMint The amount of decentralized stablecoin to mint
-     *@notice This function will deposit your collateral and mint DSC in one transaction
+     *@param amountStbToMint The amount of decentralized stablecoin to mint
+     *@notice This function will deposit your collateral and mint STB in one transaction
     */
-    function depositCollateralAndMintDsc(
+    function depositCollateralAndMintStb(
         address tokenCollateralAddress,
         uint256 amountCollateral,
-        uint256 amountDscToMint
+        uint256 amountStbToMint
     ) external {
         depositCollateral(tokenCollateralAddress, amountCollateral);
-        mintDsc(amountDscToMint);
+        mintStb(amountStbToMint);
     }
 
     function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
@@ -148,20 +148,20 @@ event DebugAmount(uint256 amount);
         emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral); // Corrected by gpt
         bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
         if (!success) {
-            revert DSCEngine__TransferFailed();
+            revert STBEngine__TransferFailed();
         }
     }
 
     /*
     *@param tokenCollateralAddress The collateral address to redeem
     *@param amountCollateral The amount of collateral to redeem
-    *@param amountDscToBurn The aount of DSC to burn
-    *Thsi function burns DSC and redeems underlying collateral in one transaction
+    *@param amountStbToBurn The aount of STB to burn
+    *Thsi function burns STB and redeems underlying collateral in one transaction
      */
-    function redeemCollateralForDsc(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountDscToBurn)
+    function redeemCollateralForStb(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountStbToBurn)
         external
     {
-        burnDsc(amountDscToBurn);
+        burnStb(amountStbToBurn);
         redeemCollateral(tokenCollateralAddress, amountCollateral);
         //redeemCollateral already checks health factor
     }
@@ -181,18 +181,18 @@ event DebugAmount(uint256 amount);
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function mintDsc(uint256 amountDscToMint) public moreThanZero(amountDscToMint) nonReentrant {
-        s_DSCMinted[msg.sender] += amountDscToMint;
-        //if they minted too much eg $150 DSC vs $100 ETH
+    function mintStb(uint256 amountStbToMint) public moreThanZero(amountStbToMint) nonReentrant {
+        s_STBMinted[msg.sender] += amountStbToMint;
+        //if they minted too much eg $150 STB vs $100 ETH
         _revertIfHealthFactorIsBroken(msg.sender);
-        bool minted = i_dsc.mint(msg.sender, amountDscToMint);
+        bool minted = i_stb.mint(msg.sender, amountStbToMint);
         if (!minted) {
-            revert DSCEngine__MintFailed();
+            revert STBEngine__MintFailed();
         }
     }
 
-    function burnDsc(uint256 amount) public moreThanZero(amount) {
-        _burnDSC(amount, msg.sender, msg.sender);
+    function burnStb(uint256 amount) public moreThanZero(amount) {
+        _burnSTB(amount, msg.sender, msg.sender);
         _revertIfHealthFactorIsBroken(msg.sender); //might not hit ever
     }
 
@@ -200,13 +200,13 @@ event DebugAmount(uint256 amount);
     // ie minted more than minimum collateral required
     // prie of ETH (collateral) tanks
     // if someone is almost undercollateralized, we will pay you to liquidate them
-    //$75 backing $50 DSC, liquidator take $75 and burns off $50 DSC
+    //$75 backing $50 STB, liquidator take $75 and burns off $50 STB
 
     /*
      *@param collateral: The erc20 collateral address to loquidate from the user
      *@param user: The user who has broken the health factor. Their _healthFactor
      *              should be below MIN_HEALTH_FACTOR
-     *@param debtToCover: The amount of DSC we want to burn to improve users' 
+     *@param debtToCover: The amount of STB we want to burn to improve users' 
      *              health factor
      *@notice You can partially liquidate a user
      *@notice You will get a liquidation bonus for taking the users' funds
@@ -224,18 +224,18 @@ event DebugAmount(uint256 amount);
     {
         uint256 startingUserHealthFactor = _healthFactor(user);
         if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
-            revert DSCEngine__HealthFactorOk();
+            revert STBEngine__HealthFactorOk();
         }
         uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(collateral, debtToCover);
 
         uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
         _redeemCollateral(user, msg.sender, collateral, totalCollateralToRedeem);
-        _burnDSC(debtToCover, user, msg.sender);
+        _burnSTB(debtToCover, user, msg.sender);
 
         uint256 endingUserHealthFactor = _healthFactor(user);
         if (endingUserHealthFactor <= startingUserHealthFactor) {
-            revert DSCEngine__HealthFactorNotImproved();
+            revert STBEngine__HealthFactorNotImproved();
         }
         _revertIfHealthFactorIsBroken(msg.sender);
     }
@@ -248,14 +248,14 @@ event DebugAmount(uint256 amount);
      *@dev Low-level internal function, do not call unless the function calling it is
      * checking for health factor being broken
      */
-    function _burnDSC(uint256 amountDscToBurn, address onBehalfOf, address dscFrom) private {
-        s_DSCMinted[onBehalfOf] -= amountDscToBurn;
-        bool success = i_dsc.transferFrom(dscFrom, address(this), amountDscToBurn);
+    function _burnSTB(uint256 amountStbToBurn, address onBehalfOf, address stbFrom) private {
+        s_STBMinted[onBehalfOf] -= amountStbToBurn;
+        bool success = i_stb.transferFrom(stbFrom, address(this), amountStbToBurn);
 
         if (!success) {
-            revert DSCEngine__TransferFailed();
+            revert STBEngine__TransferFailed();
         }
-        i_dsc.burn(amountDscToBurn);
+        i_stb.burn(amountStbToBurn);
     }
 
     function _redeemCollateral(address from, address to, address tokenCollateralAddress, uint256 amountCollateral)
@@ -265,7 +265,7 @@ event DebugAmount(uint256 amount);
         emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
         bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
         if (!success) {
-            revert DSCEngine__TransferFailed();
+            revert STBEngine__TransferFailed();
         }
         _revertIfHealthFactorIsBroken(msg.sender);
     }
@@ -273,28 +273,28 @@ event DebugAmount(uint256 amount);
     function _getAccountInformation(address user)
         private
         view
-        returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
+        returns (uint256 totalStbMinted, uint256 collateralValueInUsd)
     {
-        totalDscMinted = s_DSCMinted[user];
+        totalStbMinted = s_STBMinted[user];
         collateralValueInUsd = getAccountCollateralValue(user);
     }
 
     // _healthFactor returns how close the user is to liquidation
     // if a user goes below 1, they can be liquidated
     function _healthFactor(address user) private view returns (uint256) {
-        //total DSC minted & total collateral value
-        (uint256 totalDscMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        //total STB minted & total collateral value
+        (uint256 totalStbMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
 
-        return _calculateHealthFactor(totalDscMinted, collateralValueInUsd);
+        return _calculateHealthFactor(totalStbMinted, collateralValueInUsd);
 
         //..refactored above..
         //uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-        //return (collateralAdjustedForThreshold * PRECISION) / totalDscMinted;
+        //return (collateralAdjustedForThreshold * PRECISION) / totalStbMinted;
 
-        // $150 ETH / 100 DSC = 1.5
+        // $150 ETH / 100 STB = 1.5
         // 150 *50 - 7500 / 100 = (75 / 100) < 1
 
-        // $1000 ETH / 100 DSC
+        // $1000 ETH / 100 STB
         // 1000 * 50 = 50000 / 100 = (500 / 100) > 1
     }
 
@@ -304,7 +304,7 @@ event DebugAmount(uint256 amount);
         uint256 userHealthFactor = _healthFactor(user);
         
         if (userHealthFactor < MIN_HEALTH_FACTOR) {
-            revert DSCEngine__BreaksHealthFactor(userHealthFactor);
+            revert STBEngine__BreaksHealthFactor(userHealthFactor);
         }
     }
     //Public and External view functions:
@@ -337,30 +337,30 @@ event DebugAmount(uint256 amount);
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-    function _calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+    function _calculateHealthFactor(uint256 totalStbMinted, uint256 collateralValueInUsd)
         internal
         pure
         returns (uint256)
     {
-        if (totalDscMinted == 0) return type(uint256).max;
+        if (totalStbMinted == 0) return type(uint256).max;
         uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-        return (collateralAdjustedForThreshold * 1e18) / totalDscMinted;
+        return (collateralAdjustedForThreshold * 1e18) / totalStbMinted;
     }
 
     //MORE EXTERNAL VIEW FUNCTIONS FOR BETTER VISIBILITY//
 
-    function calculateHealthFactor(uint256 totalDscMinted, uint256 collateralValueInUsd)
+    function calculateHealthFactor(uint256 totalStbMinted, uint256 collateralValueInUsd)
         external
         pure
         returns (uint256)
     {
-        return _calculateHealthFactor(totalDscMinted, collateralValueInUsd);
+        return _calculateHealthFactor(totalStbMinted, collateralValueInUsd);
     }
 
     function getAccountInformation(address user)
         external
         view
-        returns (uint256 totalDscMinted, uint256 collateralValueInUsd)
+        returns (uint256 totalStbMinted, uint256 collateralValueInUsd)
     {
         return _getAccountInformation(user);
     }
@@ -373,10 +373,10 @@ event DebugAmount(uint256 amount);
 
 //     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
 //     // Check if the user address is the zero address
-//     if (user == address(0)) revert DSCEngine__NotAllowedZeroAddress();
+//     if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
 
 //     // Ensure the token is a valid collateral token
-//     if (!s_collateralTokens.contains(token)) revert DSCEngine__NotAllowedToken();
+//     if (!s_collateralTokens.contains(token)) revert STBEngine__NotAllowedToken();
 
 //     // Return the collateral balance for the given user and token
 //     return s_collateralDeposited[user][token];
@@ -384,7 +384,7 @@ event DebugAmount(uint256 amount);
 
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
     // Check if the user address is the zero address
-    if (user == address(0)) revert DSCEngine__NotAllowedZeroAddress();
+    if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
 
     // Ensure the token is a valid collateral token
     bool isValidToken = false;
@@ -395,7 +395,7 @@ event DebugAmount(uint256 amount);
         }
     }
 
-    if (!isValidToken) revert DSCEngine__NotAllowedToken();
+    if (!isValidToken) revert STBEngine__NotAllowedToken();
 
     // Return the collateral balance for the given user and token
     return s_collateralDeposited[user][token];
@@ -429,8 +429,8 @@ event DebugAmount(uint256 amount);
         return s_collateralTokens;
     }
 
-    function getDsc() external view returns (address) {
-        return address(i_dsc);
+    function getStb() external view returns (address) {
+        return address(i_stb);
     }
 
     function getCollateralTokenPriceFeed(address token) external view returns (address) {

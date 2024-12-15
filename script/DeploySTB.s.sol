@@ -2,15 +2,15 @@
 pragma solidity ^0.8.18;
 
 import {Script} from "forge-std/Script.sol";
-import {DecentralizedStableCoin} from "../src/DecentralizedStableCoin.sol";
-import {DSCEngine} from "../src/DSCEngine.sol";
+import {Stablium} from "../src/Stablium.sol";
+import {STBEngine} from "../src/STBEngine.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
 
-contract DeployDSC is Script {
+contract DeploySTB is Script {
     address[] public tokenAddresses;
     address[] public priceFeedAddresses;
 
-    function run() external returns (DecentralizedStableCoin, DSCEngine, HelperConfig) {
+    function run() external returns (Stablium, STBEngine, HelperConfig) {
         HelperConfig config = new HelperConfig();
         (address wethUsdPriceFeed, address wbtcUsdPriceFeed, address weth, address wbtc, uint256 deployerKey) =
             config.activeNetworkConfig();
@@ -19,11 +19,11 @@ contract DeployDSC is Script {
         priceFeedAddresses = [wethUsdPriceFeed, wbtcUsdPriceFeed];
 
         vm.startBroadcast(deployerKey);
-        DecentralizedStableCoin dsc = new DecentralizedStableCoin();
-        DSCEngine engine = new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
+        Stablium stb = new Stablium();
+        STBEngine engine = new STBEngine(tokenAddresses, priceFeedAddresses, address(stb));
 
-        dsc.transferOwnership(address(engine));
+        stb.transferOwnership(address(engine));
         vm.stopBroadcast();
-        return (dsc, engine, config);
+        return (stb, engine, config);
     }
 }

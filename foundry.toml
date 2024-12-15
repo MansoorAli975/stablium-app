@@ -11,5 +11,5 @@ runs = 128
 depth = 128
 fail_on_revert = true
 
-[network]
+[profile.network]
 sepolia = { url = "${SEPOLIA_RPC_URL}", chain_id = 11155111 }

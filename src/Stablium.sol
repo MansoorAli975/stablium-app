@@ -5,40 +5,40 @@ import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensio
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /*
- * @title               DecentralizedStableCoin
+ * @title               Stablium
  * @author              Mansoor Ali
  * Collateral:          Exogenous (ETH & BTC)
  * Minting:             Algorithmic
  * Relative Stability:  Pegged to USD
  *
- * This is the contract meant to be governed by DSCEngine. 
+ * This is the contract meant to be governed by STBEngine. 
  * This contract is just ERC20 implementation of our stablecoin system.
 */
 
-contract DecentralizedStableCoin is ERC20Burnable, Ownable {
-    error DecentralizedStableCoin__MustBeMoreThanZero();
-    error DecentralizedStableCoin__BurnAmountExceedsBalance();
-    error DecentralizedStableCoin__NotZeroAddress();
+contract Stablium is ERC20Burnable, Ownable {
+    error Stablium__MustBeMoreThanZero();
+    error Stablium__BurnAmountExceedsBalance();
+    error Stablium__NotZeroAddress();
 
-    constructor() ERC20("DecentralizedStableCoin", "DSC") {}
+    constructor() ERC20("Stablium", "STB") {}
 
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);
         if (_amount <= 0) {
-            revert DecentralizedStableCoin__MustBeMoreThanZero();
+            revert Stablium__MustBeMoreThanZero();
         }
         if (balance < _amount) {
-            revert DecentralizedStableCoin__BurnAmountExceedsBalance();
+            revert Stablium__BurnAmountExceedsBalance();
         }
         super.burn(_amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
         if (_to == address(0)) {
-            revert DecentralizedStableCoin__NotZeroAddress();
+            revert Stablium__NotZeroAddress();
         }
         if (_amount <= 0) {
-            revert DecentralizedStableCoin__MustBeMoreThanZero();
+            revert Stablium__MustBeMoreThanZero();
         }
         _mint(_to, _amount);
         return true;
