@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeFi Stablecoin</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Include ethers.js from CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background-color: #f7f7f7;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+        }
+
+        h1 {
+            color: rgba(58, 58, 242, 0.917);
+        }
+
+        h3 {
+            color: rgba(58, 58, 242, 0.917);
+        }
+
+        div {
+            margin-bottom: 20px;
+        }
+
+        label, p {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+
+        input[type="number"] {
+            padding: 8px;
+            width: 200px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: rgba(58, 58, 242, 0.917);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:disabled {
+            background-color: #8ac9f6;
+        }
+
+        button:hover {
+            background-color: rgba(58, 58, 242, 0.917);
+        }
+
+        #walletAddress {
+            font-weight: bold;
+        }
+
+        .section {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        .balance-info {
+            margin-top: 10px;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        #statusMessage {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e7f4e4;
+            border: 1px solid #d4e9d0;
+            border-radius: 5px;
+            display: none;
+            font-size: large;
+            position: sticky;
+            top: 20px;
+            align-self: flex-start;
+            width: 300px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Decentralized Stablecoin - DSC</h1>
+    <p>A decentralized stablecoin pegged to the US Dollar, backed by WETH and WBTC, designed to be overcollateralized with minimal governance and fees.</p>
+    <main>
+        <div class="section">
+            <h3>Connect Wallet</h3>
+            <button id="connectWalletBtn">Connect Wallet</button>
+            <p id="walletAddress">Not connected</p>
+        </div>
+        
+        <div class="section">
+            <h3>Your Balances</h3>
+            <button id="getBalancesBtn" disabled>Get Balances</button>
+            <div class="balance-info">
+                <p id="wethBalance">WETH Balance: 0 WETH</p>
+                <p id="dscBalance">DSC Balance: 0 DSC</p>
+                <p id="collateralBalance">Collateral Balance: 0 WETH</p>
+            </div>
+        </div>
+        
+        <div id="statusMessage"></div>
+
+        <div class="section">
+            <h3>Wrap ETH to WETH</h3>
+            <br>
+            <label for="wrapAmountInput">Enter ETH amount to wrap:</label>
+            <input type="number" id="wrapAmountInput" placeholder="ETH" step="0.01" min="0.01" />
+            <button id="wrapEthButton" disabled>Wrap ETH</button>
+        </div>
+    
+        <div class="section">
+            <h3>Deposit Collateral and Mint DSC</h3>
+            <br>
+            <label for="depositAmountInput">Enter WETH amount to deposit:</label>
+            <input type="number" id="depositAmountInput" placeholder="WETH" step="0.01" min="0.01" />
+            <br>
+            <label for="mintAmountInput">Enter DSC amount to mint:</label>
+            <input type="number" id="mintAmountInput" placeholder="DSC" step="0.01" min="0.01" />
+            <br>
+            <button id="depositAndMintBtn" disabled>Deposit Collateral and Mint DSC</button>
+        </div>
+    
+        <!-- Burn DSC and Redeem Collateral Section -->
+        <div class="section">
+            <h3>Burn DSC and Redeem Collateral</h3>
+            <br>
+            <label for="burn-dsc">Enter DSC amount to burn:</label>
+            <input type="number" id="burn-dsc" placeholder="DSC" step="0.01" min="0.01"/>
+            <br>
+            <label for="redeem-collateral">Amount of WETH to redeem:</label>
+            <input type="number" id="redeem-collateral" placeholder="WETH" step="0.01" min="0.01" />
+            <button id="redeem-button" disabled>Redeem Collateral</button>
+        </div>
+
+        <!-- Transfer ETH to Wallet Section -->
+        <div class="section">
+            <h3>Transfer ETH to Wallet</h3>
+            <br>
+            <label for="transfer-amount">Enter Amount:</label>
+            <input type="number" id="transfer-amount" placeholder="ETH" step="0.01" min="0.01" />
+            <button id="transfer-button" disabled>Transfer to Wallet</button>
+        </div>
+
+    </main>
+    
+    <script src="index.js"></script>
+</body>
+</html>

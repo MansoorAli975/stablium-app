@@ -53,6 +53,7 @@ contract DSCEngine is ReentrancyGuard {
     error DSCEngine__MintFailed();
     error DSCEngine__HealthFactorOk();
     error DSCEngine__HealthFactorNotImproved();
+    error DSCEngine__NotAllowedZeroAddress();
 
     // TYPE//
 
@@ -83,12 +84,22 @@ contract DSCEngine is ReentrancyGuard {
         address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amount
     );
 
+    // modifier moreThanZero(uint256 amount) {
+    //     if (amount == 0) {
+    //         revert DSCEngine__NeedsMoreThanZero();
+    //     }
+    //     _;
+    // }
+
     modifier moreThanZero(uint256 amount) {
-        if (amount == 0) {
-            revert DSCEngine__NeedsMoreThanZero();
-        }
-        _;
+    if (amount == 0) {
+        revert DSCEngine__NeedsMoreThanZero();
     }
+    emit DebugAmount(amount); // Add a debug event for the amount
+    _;
+}
+event DebugAmount(uint256 amount);
+
 
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0)) {
@@ -291,6 +302,7 @@ contract DSCEngine is ReentrancyGuard {
     //revert if they don't
     function _revertIfHealthFactorIsBroken(address user) internal view {
         uint256 userHealthFactor = _healthFactor(user);
+        
         if (userHealthFactor < MIN_HEALTH_FACTOR) {
             revert DSCEngine__BreaksHealthFactor(userHealthFactor);
         }
@@ -352,10 +364,42 @@ contract DSCEngine is ReentrancyGuard {
     {
         return _getAccountInformation(user);
     }
+    ////
+   //THIS WAS THE ORIGINAL FUNCTION, CHANGE TWICE BELOW BY CHATGPT///
+    ///
+    // function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+    //     return s_collateralDeposited[user][token];
+    // }
+
+//     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+//     // Check if the user address is the zero address
+//     if (user == address(0)) revert DSCEngine__NotAllowedZeroAddress();
+
+//     // Ensure the token is a valid collateral token
+//     if (!s_collateralTokens.contains(token)) revert DSCEngine__NotAllowedToken();
+
+//     // Return the collateral balance for the given user and token
+//     return s_collateralDeposited[user][token];
+// }
 
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
-        return s_collateralDeposited[user][token];
+    // Check if the user address is the zero address
+    if (user == address(0)) revert DSCEngine__NotAllowedZeroAddress();
+
+    // Ensure the token is a valid collateral token
+    bool isValidToken = false;
+    for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+        if (s_collateralTokens[i] == token) {
+            isValidToken = true;
+            break;
+        }
     }
+
+    if (!isValidToken) revert DSCEngine__NotAllowedToken();
+
+    // Return the collateral balance for the given user and token
+    return s_collateralDeposited[user][token];
+}
 
     function getPrecision() external pure returns (uint256) {
         return PRECISION;

@@ -1,4 +1,4 @@
-// // SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
 import {Test} from "forge-std/Test.sol";
@@ -7,9 +7,7 @@ import {DecentralizedStableCoin} from "../../src/DecentralizedStableCoin.sol";
 import {DSCEngine} from "../../src/DSCEngine.sol";
 import {HelperConfig} from "../../script/HelperConfig.s.sol";
 import {MockV3Aggregator} from "../mocks/MockV3Aggregator.sol";
-//import {ERC20Mock} from "@openzeppelin/contracts/mocks/ERC20/Mock.sol";
-//import "@openzeppelin/contracts/mocks/ERC20/Mock.sol";
-import "@openzeppelin/contracts/mocks/ERC20Mock.sol"; // Correct import for the ERC20 mo
+import "@openzeppelin/contracts/mocks/ERC20Mock.sol"; // Correct import for the ERC20 mock
 
 contract DSCEngineTest is Test {
     DeployDSC deployer;
@@ -30,8 +28,7 @@ contract DSCEngineTest is Test {
         ERC20Mock(weth).mint(USER, STARTING_ERC20_BALANCE);
     }
 
-    //CONSTRUCTOR TESTS://
-
+    //CONSTRUCTOR TESTS:
     address[] public tokenAddresses;
     address[] public priceFeedAddresses;
 
@@ -44,8 +41,7 @@ contract DSCEngineTest is Test {
         new DSCEngine(tokenAddresses, priceFeedAddresses, address(dsc));
     }
 
-    //PRICE TESTS://
-
+    //PRICE TESTS:
     function testGetUsdValue() public view {
         uint256 ethAmount = 15e18;
         uint256 expectedUsd = 30000e18;
@@ -60,7 +56,7 @@ contract DSCEngineTest is Test {
         assertEq(expectedWeth, actualWeth);
     }
 
-    //depositCollateral Tests///
+    //depositCollateral Tests:
     function testRevertsIfcollateralZero() public {
         vm.startPrank(USER);
         ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL);
@@ -68,5 +64,20 @@ contract DSCEngineTest is Test {
         vm.expectRevert(DSCEngine.DSCEngine__NeedsMoreThanZero.selector);
         dsce.depositCollateral(weth, 0);
         vm.stopPrank();
+    }
+
+    // New Test for Checking Collateral Balance of User
+    function testGetCollateralBalanceOfUser() public {
+        // Arrange: Deposit collateral for the user
+        vm.startPrank(USER);
+        ERC20Mock(weth).approve(address(dsce), AMOUNT_COLLATERAL); // Approve collateral
+        dsce.depositCollateral(weth, AMOUNT_COLLATERAL); // Deposit the collateral
+        vm.stopPrank();
+
+        // Act: Call getCollateralBalanceOfUser to fetch the balance for the user
+        uint256 balance = dsce.getCollateralBalanceOfUser(USER, weth);
+
+        // Assert: Verify the balance is as expected
+        assertEq(balance, AMOUNT_COLLATERAL, "The collateral balance should match the deposited amount.");
     }
 }

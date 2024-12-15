@@ -1,0 +1,209 @@
+/* General Styling */
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: linear-gradient(135deg, #f0f4ff, #e6f7e9);
+    color: #333;
+    line-height: 1.6;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+}
+
+/* Flex container for the main wrapper */
+main {
+    display: flex;
+    flex-direction: column;
+    gap: 15px; /* Space between sections */
+    width: 100%;
+    max-width: 600px;
+    padding: 20px;
+    background-color: #f0f4f8;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: visible;
+    transform: scale(1); /* Scale down to 75% */
+    transform-origin: top center; /* Keeps the scaling centered */
+}
+
+/* Styling for the individual sections */
+.section {
+    padding: 15px;
+    background-color: #fff;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #ffffff, #e6e6e6);
+    box-shadow: 3px 3px 6px #ccc, -3px -3px 6px #fff;
+    text-align: center;
+    overflow: visible;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.section:hover {
+    transform: scale(1.02);
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.15), -5px -5px 10px rgba(255, 255, 255, 0.9);
+}
+
+/* Headings */
+h3 {
+    font-size: 1.25rem; /* Reduced font size */
+    color: rgba(58, 58, 242, 0.917);
+    margin-bottom: 12px;
+    border-bottom: 2px solid #0056b3; /* Dark blue underline */
+    display: inline-block;
+    padding-bottom: 5px;
+}
+
+/* Buttons */
+button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px; /* Reduced padding */
+    font-size: 14px; /* Reduced font size */
+    font-weight: bold;
+    color: white;
+    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease-in-out;
+    margin-top: 8px;
+}
+
+button:disabled {
+    background: linear-gradient(135deg, #b3d8ff, #90c8ff); /* Lighter blue gradient when disabled */
+    cursor: default;
+}
+
+button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0056b3, #003f7f); /* Darker blue gradient on hover */
+    transform: translateY(-2px);
+}
+
+/* Inputs */
+input[type="number"] {
+    width: 100%;
+    max-width: 300px;
+    padding: 8px; /* Reduced padding */
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 14px; /* Reduced font size */
+    margin: 8px 0;
+    transition: border-color 0.2s ease;
+}
+
+input[type="number"]:focus {
+    border-color: #0056b3; /* Dark blue border on focus */
+    outline: none;
+    box-shadow: 0 0 8px #90c8ff; /* Light blue glow on focus */
+}
+
+/* Wallet Status Indicator */
+#walletAddress {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 1rem;
+    padding: 6px 10px; /* Reduced padding */
+    border-radius: 8px;
+    background: #e0f7fa;
+    color: rgba(58, 58, 242, 0.917);
+    border: 1px solid #b2dfdb;
+    font-weight: bold;
+}
+
+#walletAddress.connected {
+    background: #c8e6c9;
+    color: rgba(58, 58, 242, 0.917);
+    border: 1px solid #81c784;
+}
+
+/* Status Message */
+#statusMessage {
+    margin-top: 16px;
+    padding: 12px;
+    background-color: #e7f4e4;
+    border: 1px solid #d4e9d0;
+    border-radius: 8px;
+    font-size: 0.875rem; /* Reduced font size */
+    font-style: italic;
+    color: green;
+    display: none;
+}
+
+/* Balance Info */
+.balance-info {
+    background: #f1f1f1;
+    padding: 12px; /* Reduced padding */
+    border-radius: 8px;
+    font-size: 0.875rem; /* Reduced font size */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    text-align: left;
+}
+
+.balance-info p {
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.balance-info img {
+    margin-right: 8px;
+    width: 18px; /* Reduced size */
+    height: 18px;
+    object-fit: contain;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        font-size: 12px;
+    }
+
+    button {
+        font-size: 12px;
+    }
+
+    .section {
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        font-size: 10px;
+    }
+
+    button {
+        font-size: 10px;
+    }
+
+    .section {
+        padding: 8px;
+    }
+}
+
+/* Connect Wallet and Get Balances Buttons */
+#connectWalletBtn,
+#getBalancesBtn {
+    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient */
+}
+
+#connectWalletBtn:hover:not(:disabled),
+#getBalancesBtn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0056b3, #003f7f); /* Darker blue on hover */
+}
+
+#getBalancesBtn:disabled {
+    background: linear-gradient(135deg, #b3d8ff, #90c8ff); /* Lighter blue gradient when disabled */
+    cursor: default;
+}
+
+#getBalancesBtn {
+    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient when enabled */
+    cursor: pointer;
+}
