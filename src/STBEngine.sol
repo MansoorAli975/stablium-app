@@ -92,14 +92,14 @@ contract STBEngine is ReentrancyGuard {
     // }
 
     modifier moreThanZero(uint256 amount) {
-    if (amount == 0) {
-        revert STBEngine__NeedsMoreThanZero();
+        if (amount == 0) {
+            revert STBEngine__NeedsMoreThanZero();
+        }
+        emit DebugAmount(amount); // Add a debug event for the amount
+        _;
     }
-    emit DebugAmount(amount); // Add a debug event for the amount
-    _;
-}
-event DebugAmount(uint256 amount);
 
+    event DebugAmount(uint256 amount);
 
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0)) {
@@ -302,7 +302,7 @@ event DebugAmount(uint256 amount);
     //revert if they don't
     function _revertIfHealthFactorIsBroken(address user) internal view {
         uint256 userHealthFactor = _healthFactor(user);
-        
+
         if (userHealthFactor < MIN_HEALTH_FACTOR) {
             revert STBEngine__BreaksHealthFactor(userHealthFactor);
         }
@@ -365,41 +365,41 @@ event DebugAmount(uint256 amount);
         return _getAccountInformation(user);
     }
     ////
-   //THIS WAS THE ORIGINAL FUNCTION, CHANGE TWICE BELOW BY CHATGPT///
+    //THIS WAS THE ORIGINAL FUNCTION, CHANGE TWICE BELOW BY CHATGPT///
     ///
     // function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
     //     return s_collateralDeposited[user][token];
     // }
 
-//     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
-//     // Check if the user address is the zero address
-//     if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
+    //     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+    //     // Check if the user address is the zero address
+    //     if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
 
-//     // Ensure the token is a valid collateral token
-//     if (!s_collateralTokens.contains(token)) revert STBEngine__NotAllowedToken();
+    //     // Ensure the token is a valid collateral token
+    //     if (!s_collateralTokens.contains(token)) revert STBEngine__NotAllowedToken();
 
-//     // Return the collateral balance for the given user and token
-//     return s_collateralDeposited[user][token];
-// }
+    //     // Return the collateral balance for the given user and token
+    //     return s_collateralDeposited[user][token];
+    // }
 
     function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
-    // Check if the user address is the zero address
-    if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
+        // Check if the user address is the zero address
+        if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
 
-    // Ensure the token is a valid collateral token
-    bool isValidToken = false;
-    for (uint256 i = 0; i < s_collateralTokens.length; i++) {
-        if (s_collateralTokens[i] == token) {
-            isValidToken = true;
-            break;
+        // Ensure the token is a valid collateral token
+        bool isValidToken = false;
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+            if (s_collateralTokens[i] == token) {
+                isValidToken = true;
+                break;
+            }
         }
+
+        if (!isValidToken) revert STBEngine__NotAllowedToken();
+
+        // Return the collateral balance for the given user and token
+        return s_collateralDeposited[user][token];
     }
-
-    if (!isValidToken) revert STBEngine__NotAllowedToken();
-
-    // Return the collateral balance for the given user and token
-    return s_collateralDeposited[user][token];
-}
 
     function getPrecision() external pure returns (uint256) {
         return PRECISION;
