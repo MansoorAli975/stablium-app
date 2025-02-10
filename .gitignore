@@ -13,9 +13,9 @@ docs/
 
 # Dotenv file
 
-#.env was commented out earlier, uncommenting it not to push to git hub, recheck if problem
+#.env and lib were commented out earlier, uncommenting it not to push to git hub, recheck if problem
 
-#lib/
+lib/
 
 node_modules/
 .env
