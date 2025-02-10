@@ -15,8 +15,9 @@ docs/
 
 #.env and lib were commented out earlier, uncommenting it not to push to git hub, recheck if problem
 
-lib/
-
 node_modules/
 .env
 .DS_Store
+
+#lib/
+!lib/forge-std/
