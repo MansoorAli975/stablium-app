@@ -1,15 +1,13 @@
-### About this project ###
+### About this project
 
 1. (Relative Stability) Anchored or Pegged -> @1.00 (Not doing floating this time)
-    1- Chainlink Price Feed.
-    2- Set  function to exchange ETH & BTC -> $$$
+   1- Chainlink Price Feed.
+   2- Set function to exchange ETH & BTC -> $$$
 2. Stability Mechanism (Minting): Algorithmic (Decentralized)
-    1- People can only mint the stablecoin with enough collateral (coded)
+   1- People can only mint the stablecoin with enough collateral (coded)
 3. Collateral: Exogenous (Crypto)
-    1- wETH (w = wrapped ERC20)
-    2- wBTC
-
-
+   1- wETH (w = wrapped ERC20)
+   2- wBTC
 
 ## Foundry
 
@@ -17,10 +15,10 @@
 
 Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
+- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
+- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
+- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
 
 ## Documentation
 
@@ -77,3 +75,8 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+<!-- ####Notes#### -->
+
+lib was included in gitignore, commented it out due to problems in forge build, check in the end if lib should be included again in gitignore
+same withg .env (uncomment in the end)

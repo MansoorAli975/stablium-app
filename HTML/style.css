@@ -1,209 +1,752 @@
-/* General Styling */
 body {
-    font-family: 'Roboto', Arial, sans-serif;
     margin: 0;
     padding: 0;
-    background: linear-gradient(135deg, #f0f4ff, #e6f7e9);
-    color: #333;
-    line-height: 1.6;
-    font-size: 16px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow-x: hidden;
+    background: #191D26;
+    font-family: 'Open Sans', sans-serif;
+    position: relative; /* Ensures that the middle box can be positioned relative to the body */
+
 }
 
-/* Flex container for the main wrapper */
-main {
+.start-container {
+    display: flex;
+    height: 100vh; /* Full viewport height */
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 60px;
+}
+
+.text-content {
+    flex: 1.5; /* Occupies more width for the text */
     display: flex;
     flex-direction: column;
-    gap: 15px; /* Space between sections */
-    width: 100%;
-    max-width: 600px;
+    justify-content: center;
+    align-items: flex-start;
     padding: 20px;
-    background-color: #f0f4f8;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    overflow: visible;
-    transform: scale(1); /* Scale down to 75% */
-    transform-origin: top center; /* Keeps the scaling centered */
-}
-
-/* Styling for the individual sections */
-.section {
-    padding: 15px;
-    background-color: #fff;
-    border-radius: 8px;
-    background: linear-gradient(145deg, #ffffff, #e6e6e6);
-    box-shadow: 3px 3px 6px #ccc, -3px -3px 6px #fff;
-    text-align: center;
-    overflow: visible;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.section:hover {
-    transform: scale(1.02);
-    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.15), -5px -5px 10px rgba(255, 255, 255, 0.9);
-}
-
-/* Headings */
-h3 {
-    font-size: 1.25rem; /* Reduced font size */
-    color: rgba(58, 58, 242, 0.917);
-    margin-bottom: 12px;
-    border-bottom: 2px solid #0056b3; /* Dark blue underline */
-    display: inline-block;
-    padding-bottom: 5px;
-}
-
-/* Buttons */
-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 20px; /* Reduced padding */
-    font-size: 14px; /* Reduced font size */
-    font-weight: bold;
     color: white;
-    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient */
-    border: none;
-    border-radius: 8px;
+}
+
+.welcome-to {
+    font-size: 28px;
+    font-weight: 400;
+    margin-bottom: 15px;
+}
+
+.future-text {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+.logo-image {
+    width: 500px; /* Adjust size */
+    height: auto;
+    margin-top: 20px;
+    position: relative;
+    z-index: 2; /* To overlap the coin image */
+}
+
+.group {
+    margin-top: 20px;
+}
+
+.main-text {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.6; /* Adds spacing between lines */
+    margin-bottom: 15px;
+    word-wrap: break-word;
+    max-width: 100%; /* Ensures it doesn't overflow */
+}
+
+.features-list {
+    padding-left: 20px; /* Adds indentation for the list */
+    margin: 0;
+    list-style-type: disc; /* Adds bullet points */
+}
+
+.features-list li {
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.6; /* Adds spacing between lines */
+    margin-bottom: 10px;
+    color: white;
+}
+
+.get-started {
+    margin-top: 20px;
+    padding: 12px 50px;
+    background: linear-gradient(90deg, #0071BC,#00A9D7,#00D8ED,#00F4FA,#00FFFF); /* Radiant gradient */
+    color: black; /* Text color */
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'Open Sans', sans-serif;
+    text-align: center;
     cursor: pointer;
-    transition: background 0.3s ease, transform 0.2s ease-in-out;
-    margin-top: 8px;
+    border: 2px solid transparent; /* No border color */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition */
+    background-clip: padding-box; /* Ensures gradient applies only to the button itself */
 }
 
-button:disabled {
-    background: linear-gradient(135deg, #b3d8ff, #90c8ff); /* Lighter blue gradient when disabled */
-    cursor: default;
+.get-started:hover {
+    transform: scale(1.05); /* Slight zoom effect */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+    border: 2px solid #003c6a; /* Darker border color on hover */
 }
 
-button:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0056b3, #003f7f); /* Darker blue gradient on hover */
-    transform: translateY(-2px);
+.image-content {
+    flex: 1; /* Allocates equal width to the image */
+    position: relative;
 }
 
-/* Inputs */
-input[type="number"] {
-    width: 100%;
-    max-width: 300px;
-    padding: 8px; /* Reduced padding */
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    font-size: 14px; /* Reduced font size */
-    margin: 8px 0;
-    transition: border-color 0.2s ease;
+.coin-image {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 519.59px;
+    height: 612.75px;
+    object-fit: cover;
+    z-index: 1; /* Behind the logo */
 }
 
-input[type="number"]:focus {
-    border-color: #0056b3; /* Dark blue border on focus */
-    outline: none;
-    box-shadow: 0 0 8px #90c8ff; /* Light blue glow on focus */
+.top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between; /* Ensures content is distributed with space between */
+    padding: 20px 40px;
+    background-color: #191D26; /* Matches the background of your site */
 }
 
-/* Wallet Status Indicator */
-#walletAddress {
-    display: inline-block;
-    margin-top: 8px;
-    font-size: 1rem;
-    padding: 6px 10px; /* Reduced padding */
-    border-radius: 8px;
-    background: #e0f7fa;
-    color: rgba(58, 58, 242, 0.917);
-    border: 1px solid #b2dfdb;
-    font-weight: bold;
+.logo-section {
+    display: flex;
+    align-items: center;
 }
 
-#walletAddress.connected {
-    background: #c8e6c9;
-    color: rgba(58, 58, 242, 0.917);
-    border: 1px solid #81c784;
+.logo-image-small {
+    width: 40px;
+    height: auto; /* Adjust size */
 }
 
-/* Status Message */
-#statusMessage {
-    margin-top: 16px;
-    padding: 12px;
-    background-color: #e7f4e4;
-    border: 1px solid #d4e9d0;
-    border-radius: 8px;
-    font-size: 0.875rem; /* Reduced font size */
-    font-style: italic;
-    color: green;
-    display: none;
+.logo-text {
+    width: 200px;
+    height: auto; /* Adjust size */
+    margin-left: 15px;
 }
 
-/* Balance Info */
-.balance-info {
-    background: #f1f1f1;
-    padding: 12px; /* Reduced padding */
-    border-radius: 8px;
-    font-size: 0.875rem; /* Reduced font size */
+.the-future-text {
+    margin-left: 10px; /* Spacing between second image and text */
+    color: white;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    text-align: left; /* Ensure text aligns to the left */
+}
+
+.button-section {
+    display: flex;
+    align-items: center;
+    margin-left: auto; /* Push buttons to the right */
+}
+
+.vector-btn {
+    width: 150px;
+    height: 40px;
+    font-size: 12px;
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 0; /* No rounded corners initially */
+}
+
+.gradient-btn {
+    background: linear-gradient(90deg, #0071BC 0%, #00A9D7 32%, #00D8ED 63%, #00F4FA 87%, #00FFFF 100%);
+    color: black; /* Text color for the first button */
+    border-top-left-radius: 20px; /* Round the top-left corner */
+    border-bottom-left-radius: 20px; /* Round the bottom-left corner */
+}
+
+.black-btn {
+    background-color: #222837e8;
+    color: white; /* Text color for the second button */
+    border-top-right-radius: 20px; /* Round the top-right corner */
+    border-bottom-right-radius: 20px; /* Round the bottom-right corner */
+    border: 2px solid #00556a;
+}
+
+.vector-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+}
+
+
+/* Left Box Styling */
+.left-box {
+    width: 250px;
+    height: 500px;
+    background: #2E3548;
+    padding: 20px;
+    color: #747b8d;
+    font-size: 14px;
+    font-weight: 700;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    text-align: left;
+    justify-content: flex-start;
 }
 
-.balance-info p {
-    margin: 0;
+/* Action Link Styling */
+.action-link {
+    color: #747b8d; /* Default text color */
+    text-decoration: none; /* Remove underline */
+    font-size: 14px;
+    font-weight: 700;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.action-link:hover {
+    color: #FFFFFF; /* Change text color on hover */
+    text-shadow: 0px 0px 5px #FFFFFF; /* Add a glow effect */
+    cursor: pointer; /* Show pointer cursor */
+}
+
+/* Navigation Container */
+.navigation-container {
+    display: flex; /* Use flexbox to align the links */
+    justify-content: space-between; /* Space out the links */
+    width: 100%; /* Ensure it takes the full width */
+    padding: 15px 3px; /* Optional padding around the container */
+}
+
+
+/* Back and Next Link Styling */
+.back-link {
+    font-size: 14px;
+    color: #8890a3; /* Set the color of the text */
+    text-decoration: none; /* Remove underline */
+    font-weight: bold; /* Make the text bold */
+    padding: 0px; /* Add some padding around the text */
+    border: 0px solid#4E576B; /* Add a border to the link */
+    border-radius: 5px; /* Optional rounded corners */
+    transition: background-color 0.3s ease; /* Smooth transition for background color */
+}
+
+/* Change color on hover */
+.back-link:hover {
+    background-color: #4E576B; /* Change background color on hover */
+    color: white; /* Change text color on hover */
+}
+
+
+.box-content {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.balance-info img {
-    margin-right: 8px;
-    width: 18px; /* Reduced size */
-    height: 18px;
-    object-fit: contain;
+.action-text {
+    margin: 0;
+    line-height: 1.6;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    body {
-        font-size: 12px;
+
+/* Middle Box */
+.middle-box {
+    position: absolute; /* Absolute positioning */
+    top: 152.4px; /* Y Position */
+    left: 320px; /* X Position */
+    width: 793.7px; /* Width */
+    height: 254px; /* Height */
+    background: #1F2430;
+    padding: 1px 80px 80px 80px;
+    color: white;
+    font-family: 'Open Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    gap: 10px;
+    }
+    /* Middle Box */
+.middle-box-transaction {
+    position: absolute; /* Absolute positioning */
+    top: 152.4px; /* Y Position */
+    left: 320px; /* X Position */
+    width: 793.7px; /* Width */
+    height: 254.14px; /* Height */
+    background: #1F2430;
+    padding: 20px 80px 80px 80px;
+    color: white;
+    font-family: 'Open Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 10px;
     }
 
-    button {
-        font-size: 12px;
-    }
-
-    .section {
-        padding: 12px;
-    }
+/* Background Vector */
+.vector-background {
+    width: 100%;
+    height: 60px;
+    background: #1F2430;
 }
 
-@media (max-width: 480px) {
-    body {
-        font-size: 10px;
-    }
-
-    button {
-        font-size: 10px;
-    }
-
-    .section {
-        padding: 8px;
-    }
+/* Connect Wallet Text */
+.connect-your-wallet {
+    font-size: 21px;
+    font-weight: 700;
+    word-wrap: break-word;
+    
 }
 
-/* Connect Wallet and Get Balances Buttons */
-#connectWalletBtn,
-#getBalancesBtn {
-    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient */
+/* Wallet Instructions */
+.wallet-instructions {
+    position: relative;
+    font-size: 16px;
+    font-weight: 400;
+    word-wrap: break-word;
+    line-height: 1.4;
 }
 
-#connectWalletBtn:hover:not(:disabled),
-#getBalancesBtn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #0056b3, #003f7f); /* Darker blue on hover */
+.transaction-instructions {
+    position: relative;
+    font-size: 16px;
+    font-weight: 400;
+    word-wrap: break-word;
+    line-height: 1.4;
 }
 
-#getBalancesBtn:disabled {
-    background: linear-gradient(135deg, #b3d8ff, #90c8ff); /* Lighter blue gradient when disabled */
-    cursor: default;
+
+.instruction-line {
+    margin: 0;
 }
 
-#getBalancesBtn {
-    background: linear-gradient(135deg, #007bff, #0056b3); /* Dark blue gradient when enabled */
+/* Gradient Vector */
+.gradient-vector {
+    width: 150px;
+    height: 41px;
+    background: linear-gradient(90deg, #0071BC 0%, #00A9D7 32%, #00D8ED 63%, #00F4FA 87%, #00FFFF 100%);
+}
+
+
+/* Connect Wallet Button */
+.connect-wallet-button {
+    display: inline-block;
+    padding: 12px 30px; /* Adjusted padding to control height and width */
+    background: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF); /* Radiant gradient */
+    color: black; /* Text color */
+    font-size: 14px; /* Adjusted font size for better readability */
+    font-weight: 700;
+    font-family: 'Open Sans', sans-serif;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent; /* No border color */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition */
+    background-clip: padding-box; /* Ensures gradient applies only to the button itself */
+    width: 200px; /* Set a fixed width for the button */
+    margin-bottom: -45px;
+}
+
+.connect-wallet-button:hover {
+    transform: scale(1.05); /* Slight zoom effect */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+    border: 2px solid #003c6a; /* Darker border color on hover */
+}
+
+
+/* "?" Icon */
+/* Container for the overall layout */
+/* Ensure the container is relatively positioned */
+/* Ensure the container is relatively positioned */
+.container {
+    position: relative;
+    width: 300px; /* Adjust width as needed */
+    height: 200px; /* Adjust height as needed */
+    border: 1px solid #ccc; /* Optional border for visibility */
+}
+
+/* Container for the "?" icon and tooltip */
+.question-icon-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: inline-block; /* Ensure the hover area includes both icon and tooltip */
+    padding: 10px; /* Increase padding to expand the hover area */
+}
+
+/* Style for the "?" icon */
+.question-icon {
+    font-size: 18px;
+    font-weight: 700;
     cursor: pointer;
 }
+
+/* Tooltip styling */
+.tooltip {
+    position: absolute;
+    top: 30px; /* Adjust to appear slightly below the "?" */
+    right: 0;
+    background: #2E3548;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    visibility: hidden; /* Hidden by default */
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s ease; /* Smooth transition */
+    z-index: 10;
+    white-space: nowrap;
+    width: max-content; /* Ensure it doesn't extend unnecessarily */
+}
+
+/* Hyperlink inside the tooltip */
+.tooltip a.tooltip-link {
+    color: #4e91f3;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Show the tooltip when hovering over the "?" icon or the tooltip */
+.question-icon-container:hover .tooltip,
+.tooltip:hover {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* Tooltip styling for the hyperlink */
+.tooltip a.tooltip-link:hover {
+    color: #3587e7; /* Slight change on hover for better visual feedback */
+}
+
+/* Ensure the tooltip remains visible when hovering over the tooltip */
+.tooltip:hover {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+/* Container for all balance boxes */
+.main-container {
+    display: flex;
+    flex-direction: column; /* Stack items vertically */
+    align-items: flex-start; /* Align items to the left */
+    gap: 10px; /* Space between boxes */
+    margin-left: 307px;
+}
+
+/* Balances container */
+.balances-container {
+    display: flex; /* Align boxes in a row */
+    flex-wrap: wrap; /* Wrap boxes to next line if necessary */
+    justify-content: flex-start; /* Align to the left */
+    gap: 1px; /* Space between boxes */
+}
+
+/* Styling for the colored boxes */
+.box {
+    width: 224.95px;
+    height: 71.20px;
+    background: #4E576B; /* Background color */
+    border-radius: 0px; /* Optional rounded corners */
+    color: #FFFFFF; /* White color for text */
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    display: flex; /* Flexbox for layout */
+    flex-direction: column; /* Stack elements vertically */
+    justify-content: center; /* Center content vertically */
+    align-items: center; /* Center content horizontally */
+    padding: 10px; /* Add some padding */
+    margin-top: -90px; /* Move the boxes 10px higher */
+
+}
+
+/* Label at the top of the box */
+.balance-label {
+    font-size: 14px;
+    margin-bottom: 5px; /* Add spacing below the label */
+    text-align: center;
+    color: black; /* Keep consistent with box color */
+}
+
+/* Dynamic balance value below the label */
+.balance-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: black; /* Slightly larger font for emphasis */
+    text-align: center;
+}
+
+
+/* Transaction Button */
+
+
+.transaction-button {
+    display: inline-block;
+    padding: 12px 30px; /* Adjusted padding to control height and width */
+    background: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF); /* Radiant gradient */
+    color: black; /* Text color */
+    font-size: 14px; /* Adjusted font size for better readability */
+    font-weight: 700;
+    font-family: 'Open Sans', sans-serif;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent; /* No border color */
+    border-radius: 20px; /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition */
+    background-clip: padding-box; /* Ensures gradient applies only to the button itself */
+    width: 200px; /* Set a fixed width for the button */
+    margin-bottom: -45px;
+}
+
+.transaction-button:hover,
+.transaction-btn:hover
+{
+    transform: scale(1.05); /* Slight zoom effect */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Slightly larger shadow on hover */
+    border: 2px solid #003c6a; /* Darker border color on hover */
+}
+
+/* Generic container for input field and button */
+.transaction-container {
+    display: flex; /* Align items in a row */
+    align-items: center; /* Center items vertically */
+    gap: 0px; /* Space between the input field and button */
+
+}
+
+/* Generic styling for transaction input fields */
+.transaction-input {
+    padding: 10px;
+    width: 240px; /* Adjust the width of the input */
+    background: #333;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 50px 0 0 50px;
+    font-size: 16px;
+    margin-bottom: -4px;
+}
+
+/* Two Transactions Container */
+.two-transactions-container {
+    display: flex; /* Align input fields and button in one row */
+    align-items: center;
+    gap: 10px; /* Add spacing between inputs and button */
+    margin-bottom: 20px; /* Space below container */
+}
+
+/* Transaction Input Fields */
+.transaction-input,
+.second-transaction-input {
+    padding: 10px;
+    width: 240px; /* Consistent input width */
+    background: #333;
+    color: white;
+    border: 1px solid #444;
+    font-size: 16px;
+    border-radius: 50px 0 0 50px; /* Round corners for aesthetics */
+    margin: 0; /* Remove margin to avoid space between inputs */
+}
+
+/* Second Input Field */
+.second-transaction-input {
+    border-radius: 0; /* Remove extra rounding */
+    margin-left: -10px;
+}
+
+/* Transaction Button */
+.transaction-btn {
+    padding: 12px 30px;
+    background: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF);
+    color: black;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid #444;
+    border-radius: 0 50px 50px 0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: -10px;
+    width: 180px;
+    text-align: center; /* Center the text */
+}
+
+/* Container for Status Bar and Message */
+.transaction-status-container {
+
+    display: flex; /* Make sure the container is a flex container */
+    flex-direction: column; /* Stack elements vertically */
+    align-items: flex-start; /* Ensure elements align to the left */
+    justify-content: flex-start; /* Ensure content starts at the top */
+
+    width: 100%; /* Take up full width of the parent */
+    /* max-width: 500px; this was making bar/msg in center*/
+    margin: 20px auto; /* Center horizontally and space from other elements */
+    padding-left: 0; /* Remove any left padding */
+    padding-right: 0; /* Remove any right padding */
+    box-sizing: border-box; /* Make sure padding does not affect layout */
+
+    }
+
+/* Status Bar Styling */
+.status-bar {
+    width: 100%; /* Start empty, will be dynamically updated */
+    height: 10px;
+    background: #747b8d; /* Inactive color */
+    border-radius: 5px;
+    transition: width 0.5s ease, background 0.5s ease; /* Smooth transitions */
+    margin-top: 10px; /* Space from the elements above */
+    display: block; /* Ensure it's a block element */
+    margin: 0; /* Remove any default margin */
+    padding-left: 0;
+    text-align: left; /* Ensure the status bar is aligned to the left */
+}
+
+/* Status Message Styling */
+.status-message {
+    margin-top: 10px;
+    font-size: 14px;
+    color: #747b8d; /* Inactive color */
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    text-align: left; /* Align text to the left */
+    display: block; /* Ensure the status message starts from the left */
+    margin-left: 0; /* Remove any left margin */
+    width: 100%; /* Ensure it takes up the full width */
+}
+
+/* Status Bar Container */
+.status-bar {
+    margin-top: 10px;
+    height: 5px; /* Adjust thickness */
+    background-color: #e0e0e0; /* Default inactive background color */
+    border-radius: 3px; /* Rounded corners */
+    position: relative;
+    overflow: hidden;
+    width: 100%; /* Full width */
+}
+
+/* Active Status Bar */
+.status-bar.active {
+    background: linear-gradient(90deg, #0071BC 0%, #00A9D7 32%, #00D8ED 63%, #00F4FA 87%, #00FFFF 100%);
+    animation: progress-animation 2s ease-in-out infinite; /* Animated gradient */
+}
+
+/* Success Status Bar */
+.status-bar.success {
+    background-color: #4caf50; /* Green for success */
+    animation: none; /* Stop animation on success */
+}
+
+/* Error Status Bar */
+.status-bar.error {
+    background-color: #f44336; /* Red for error */
+    animation: none; /* Stop animation on error */
+}
+
+/* Progress Animation for Active State */
+@keyframes progress-animation {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
+/* Animated Status Bar Progress */
+.status-bar.progress {
+    height: 5px;
+    background: linear-gradient(90deg, #0071BC 0%, #00A9D7 32%, #00D8ED 63%, #00F4FA 87%, #00FFFF 100%);
+    transition: width 0.3s ease; /* Smooth progress */
+    width: 0%; /* Start empty */
+}
+
+
+/* Active Status Message */
+.status-message.active {
+    color: white; /* Active color for text */
+}
+
+/* Success Status Message */
+.status-message.success {
+    color: #0071BC; /* Green text for success */
+}
+
+/* Error Status Message */
+.status-message.error {
+    color: #f44336; /* Red text for error */
+}
+
+
+/* Container for the "!" icon and tooltip */
+/* Ensure the container is relatively positioned */
+.container {
+    position: relative;
+}
+
+/* Container for the "!" icon and tooltip */
+.wrap-information-icon-container {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+}
+
+/* Style for the "!" icon */
+.wrap-information-icon {
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Tooltip styling */
+.tooltip {
+    position: absolute;
+    top: 25px; /* Adjust to appear below the "!" */
+    right: 0;
+    background: #2E3548;
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+    font-family: 'Open Sans', sans-serif;
+    visibility: hidden; /* Hidden by default */
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+/* Show the tooltip when hovering over the "!" icon or the tooltip */
+.wrap-information-icon-container:hover .tooltip,
+.tooltip:hover {
+    visibility: visible;
+    opacity: 1;
+}
+
+
+
+.deposit-information-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.burn-information-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.transfer-information-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+

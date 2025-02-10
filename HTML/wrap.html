@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeFi Interface - Wrap ETH to WETH</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+    <div class="top-bar">
+        <!-- Left Section -->
+        <div class="logo-section">
+            <img src="onlyLogo.svg" alt="Logo" class="logo-image-small">
+            <img src="logoText.svg" alt="Logo Text" class="logo-text">
+            <div class="the-future-text">The Future of Decentralized Finance</div>
+        </div>
+        <!-- Right Section -->
+        <div class="button-section">
+            <button class="vector-btn gradient-btn" id="connectWalletBtn">Connect Wallet</button>
+            <button class="vector-btn black-btn" id="disconnectWalletBtn" style="display: none;">Disconnect Wallet</button>
+        </div>
+    </div>
+
+    <div class="left-box">
+        <div class="box-content">
+            <br><br><br><br><br>
+            <a href="connect.html" class="action-link">Connect Wallet</a><br>
+            <a href="deposit.html" class="action-link">Deposit Collateral <br> and Mint STB</a><br>
+            <a href="burn.html" class="action-link">Burn STB and <br> Redeem Collateral</a><br>
+            <a href="transfer.html" class="action-link">Transfer ETH to <br> Wallet</a>
+            
+            <!-- Navigation Links -->
+            <div class="navigation-container">
+                <a href="connect.html" class="back-link">back</a>
+                <a href="deposit.html" class="back-link">next</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="middle-box">
+        <div class="vector-background"></div>
+        <div class="connect-your-wallet">Wrap ETH to WETH</div>
+        <div class="transaction-instructions">
+            <br>
+            <div class="instruction-line">Convert ETH into Wrapped ETH (WETH) to interact with</div>
+            <div class="instruction-line">Stablium. WETH is required as collateral for minting STB.</div>
+            <br><br>
+            <div class="instruction-line">Enter amount of ETH to Wrap</div>
+        </div>
+    
+        <!-- Transaction Input and Button Container -->
+        <div class="transaction-container">
+            <!-- Input field for ETH amount -->
+            <input type="number" id="wrapAmountInput" class="transaction-input" placeholder="Enter amount of ETH" step="0.01" min="0.01" />
+
+            <!-- Transaction Button -->
+            <button id="wrapEthBtn" class="transaction-btn">
+                Wrap ETH
+            </button>
+        </div>
+
+        <!-- Status Bar and Transaction Message -->
+        <div class="transaction-status-container">
+            <div class="status-bar"></div>
+            <div class="status-message" id="statusMessage" style="display: none;">Awaiting Transaction...</div>
+        </div>
+
+        <!-- "!" Icon at the top right -->
+        <div class="wrap-information-icon-container">
+            <div class="wrap-information-icon">!</div>
+            <div class="tooltip">
+                WETH is an ERC-20 token with the same value as ETH but follows the ERC-20 standard, <br> making it compatible with the smart contracts that back STB. This process ensures secure <br> and efficient collateralization for minting decentralized stablecoins.
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- Balances container (four boxes) -->
+        <div class="balances-container">
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">ETH Balance</div>
+                    <div class="balance-value" id="ethBalance">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">WETH Balance</div>
+                    <div class="balance-value" id="wethBalance">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">STB Balance</div>
+                    <div class="balance-value" id="stbBalance">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">Collateral Balance</div>
+                    <div class="balance-value" id="collateralBalance">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="index.js"></script>
+    <script src="wrap.js"></script>
+</body>
+</html>

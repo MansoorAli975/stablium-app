@@ -12,5 +12,11 @@ broadcast/
 docs/
 
 # Dotenv file
-.env
+
+#.env was commented out earlier, uncommenting it not to push to git hub, recheck if problem
+
 #lib/
+
+node_modules/
+.env
+.DS_Store

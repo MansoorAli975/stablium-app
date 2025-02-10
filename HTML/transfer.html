@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeFi Interface - Page 2</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body>
+    <div class="top-bar">
+        <!-- Left Section -->
+        <div class="logo-section">
+            <img src="onlyLogo.svg" alt="Logo" class="logo-image-small">
+            <img src="logoText.svg" alt="Logo Text" class="logo-text">
+            <div class="the-future-text">The Future of Decentralized Finance</div>
+        </div>
+        <!-- Right Section -->
+        <div class="button-section">
+            <button id="connectWalletBtn" class="vector-btn gradient-btn">Connect Wallet</button>
+            <button id="disconnectWalletBtn" class="vector-btn black-btn">Disconnect Wallet</button>
+        </div>
+    </div>
+
+    <div class="left-box">
+        <div class="box-content">
+            <br><br><br><br><br>
+            <a href="wrap.html" class="action-link">Wrap ETH to WETH</a><br>
+            <a href="deposit.html" class="action-link">Deposit Collateral 
+               <br> and Mint STB</a><br>
+            <a href="burn.html" class="action-link">Burn STB and
+                <br> Redeem Collateral</a><br>
+            <a href="transfer.html" class="action-link" style="color:#00F4FA;">Transfer ETH to
+               <br> Wallet</a>
+            <!-- Back to index -->
+            <div class="navigation-container">
+                <a href="burn.html" class="back-link">back</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="middle-box-transaction">
+        <!-- Background Vector (Top section) -->
+        <div class="vector-background"></div>
+    
+        <!-- Connect Wallet Text -->
+        <div class="connect-your-wallet">Transfer ETH to Wallet</div>
+    
+        <!-- Wallet Instructions -->
+        <div class="transaction-instructions">
+            <br>
+            <div class="instruction-line">Withdraw your balances back to your wallet </div>
+            <div class="instruction-line"> for external transactions or storage..</div>
+            <br><br>
+            <div class="instruction-line">Enter amount to transfer</div>
+        </div>
+    
+        <!-- Transaction Input and Button Container -->
+        <div class="transaction-container">
+            <!-- Input field for ETH amount -->
+            <input type="number" class="transaction-input" placeholder="Enter amount of ETH" value="0" step="0.01" min="0.00" />
+
+            <!-- Transaction Button -->
+            <div class="transaction-btn">
+                Transfer to Wallet
+            </div>
+        </div>
+
+        <!-- Status Bar and Transaction Message -->
+        <div class="transaction-status-container">
+            <div class="status-bar"></div>
+            <div id="statusMessage" class="status-message">Awaiting Transaction...</div>
+        </div>
+    </div>
+    
+    <div class="main-container">
+        <!-- Balances container (four boxes) -->
+        <div class="balances-container">
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">ETH Balance</div>
+                    <div id="ethBalance" class="balance-value">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">WETH Balance</div>
+                    <div id="wethBalance" class="balance-value">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">STB Balance</div>
+                    <div id="stbBalance" class="balance-value">-</div>
+                </div>
+            </div>
+            <div class="balance-box">
+                <div class="box">
+                    <div class="balance-label">Collateral Balance</div>
+                    <div id="collateralBalance" class="balance-value">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="index.js"></script>
+    <script src="transfer.js"></script>
+</body>
+</html>
