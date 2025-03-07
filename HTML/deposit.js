@@ -3,7 +3,8 @@ window.addEventListener("DOMContentLoaded", () => {
   const depositAndMintBtn = document.getElementById("depositAndMintBtn");
 
   if (depositAndMintBtn) {
-    depositAndMintBtn.addEventListener("click", depositAndMint);
+    //depositAndMintBtn.addEventListener("click", depositAndMint);
+    depositAndMintBtn.addEventListener("click", depositAndMint, { once: true });
   }
 });
 
