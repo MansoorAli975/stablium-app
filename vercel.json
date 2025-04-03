@@ -1,0 +1,9 @@
+{
+  "builds": [
+    {
+      "src": "HTML/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "outputDirectory": "HTML"
+}
