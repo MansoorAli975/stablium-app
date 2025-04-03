@@ -254,23 +254,6 @@ body {
 }
 
 .middle-box {
-    position: relative;
-    top: 8.55rem; /* Use rem for positioning */
-    left: 17.925rem; /* Use rem for positioning */
-    width: 44.55rem; /* Use rem for width */
-    height: 14.25rem; /* Use rem for height */
-    background: #1F2430;
-    padding: 0.05625rem 4.4625rem 4.4625rem 4.4625rem; /* Use rem for padding */
-    color: white;
-    font-family: 'Open Sans', sans-serif;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-evenly;
-    gap: 0.5625rem;
-}
-
-
-.middle-box {
     position: absolute;
     top: 8.55rem; /* Use rem for positioning */
     left: 17.925rem; /* Use rem for positioning */
@@ -309,12 +292,6 @@ body {
 }
 
 .connect-your-wallet1 {
-    /* font-size: 1.18125rem; Use rem for font size */
-    /* font-weight: 700;
-    word-wrap: break-word;
-    margin-top: -6.8rem;
-    line-height: 1; */
-
     display: flex;
     flex-direction: column;
     gap: -0.2rem;           /* Space between lines (adjust as needed) */
@@ -861,3 +838,99 @@ body.connected .left-box .back-link {
     font-size: inherit;
     box-sizing: border-box;
   }
+
+
+  /* For responsiveness */
+  /* Medium screens (tablets) */
+@media (max-width: 992px) {
+    .start-container {
+        flex-direction: column;
+        height: auto;
+        padding: 5% 5%;
+    }
+    
+    .text-content, .image-content {
+        flex: none;
+        width: 100%;
+    }
+    
+    .coin-image {
+        position: relative;
+        top: auto;
+        right: auto;
+        margin: 2rem auto;
+    }
+    
+    .middle-box, .middle-box-transaction {
+        position: relative;
+        top: auto;
+        left: auto;
+        width: 100%;
+        margin: 1rem 0;
+    }
+    
+    .left-box {
+        width: 100%;
+        height: auto;
+    }
+    
+    .main-container {
+        margin-left: 0;
+    }
+}
+
+/* Small screens (mobile) */
+@media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+    
+    .top-bar {
+        flex-direction: column;
+        padding: 1rem;
+    }
+    
+    .logo-section {
+        margin-bottom: 1rem;
+    }
+    
+    .button-section {
+        margin-left: 0;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .two-transactions-container {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .transaction-input, .second-transaction-input {
+        width: 100%;
+        border-radius: 2.8125rem;
+        margin: 0.5rem 0;
+    }
+    
+    .transaction-btn {
+        border-radius: 2.8125rem;
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+    
+    .box {
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+}
+
+
+@media (min-width: 1200px) {
+    .start-container {
+        max-width: 85rem; /* Allow larger screens to have more space */
+        padding: 0 8%;
+    }
+
+    .middle-box, .middle-box-transaction {
+        width: 60rem; /* Expand boxes for bigger screens */
+    }
+}
