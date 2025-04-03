@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeFi Interface - Deposit Collateral</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="stylee.css">
+    <!-- <link rel="stylesheet" href="styleb.css"> -->
+    <!-- <link rel="stylesheet" href="stylec.css"> -->
+    <!-- <link rel="stylesheet" href="styled.css"> -->
+
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
-<body>
-    <div class="top-bar">
+    <body class="deposit-page">
+            
+        <div class="top-bar">
         <div class="logo-section">
-            <img src="onlyLogo.svg" alt="Logo" class="logo-image-small">
-            <img src="logoText.svg" alt="Logo Text" class="logo-text">
+            <a href="index.html"><img src="onlyLogo.svg" alt="Logo" class="logo-image-small"></a>
+            <a href="index.html"><img src="logoText.svg" alt="Logo Text" class="logo-text"></a>
             <div class="the-future-text">The Future of Decentralized Finance</div>
         </div>
         <div class="button-section">
@@ -25,9 +30,10 @@
         <div class="box-content">
             <br><br><br><br><br>
             <a href="wrap.html" class="action-link">Wrap ETH to WETH</a><br>
-            <a href="deposit.html" class="action-link" style="color:#00F4FA;">Deposit Collateral 
+            <a href="deposit.html" class="action-link active" >Deposit Collateral 
                <br> and Mint STB</a><br>
-            <a href="burn.html" class="action-link">Burn STB and
+               
+               <a href="burn.html" class="action-link">Burn STB and
                 <br> Redeem Collateral</a><br>
             <a href="transfer.html" class="action-link">Transfer ETH to
                <br> Wallet</a>
@@ -68,16 +74,16 @@
                 step="0.01" 
                 min="0.00" 
                 aria-label="Enter STB Amount" />
-            <!-- <div class="transaction-btn" id="depositAndMintBtn">Confirm</div> -->
-            
-            <!-- <div class="transaction-btn" id="depositAndMintBtn" onclick="depositAndMint()">Confirm</div> -->
-            <div class="transaction-btn" id="depositAndMintBtn">Confirm</div>
-        
+                <button id="depositAndMintBtn" class="transaction-btn">Confirm</button>        
+                <!-- <div class="transaction-btn" id="depositAndMintBtn">Confirm</div> -->
+                <!-- <button id="depositAndMintBtn" class="transaction-btn" disabled>Confirm</button> -->
+                                
         </div>
 
         <div class="transaction-status-container">
             <div class="status-bar"></div>
-            <div id="statusMessage" class="status-message">Awaiting Transaction...</div>
+            <!-- <div id="statusMessage" class="status-message"></div> -->
+            <div class="status-message" id="statusMessage" style="display: none;"></div>
         </div>
     </div>
 
@@ -86,7 +92,7 @@
             <div class="balance-box">
                 <div class="box">
                     <div class="balance-label">ETH Balance</div>
-                    <div id="ethBalance" class="balance-value">-</div>
+                        <div id="ethBalance" class="balance-value">-</div>
                 </div>
             </div>
             <div class="balance-box">
@@ -96,15 +102,15 @@
                 </div>
             </div>
             <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">STB Balance</div>
-                    <div id="stbBalance" class="balance-value">-</div>
+                <div class="box collateral-box">
+                    <div class="balance-label">Collateral Balance</div>
+                    <div id="collateralBalance" class="balance-value">-</div>
                 </div>
             </div>
             <div class="balance-box">
                 <div class="box">
-                    <div class="balance-label">Collateral Balance</div>
-                    <div id="collateralBalance" class="balance-value">-</div>
+                    <div class="balance-label">STB Balance</div>
+                    <div id="stbBalance" class="balance-value">-</div>
                 </div>
             </div>
         </div>

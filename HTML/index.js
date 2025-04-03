@@ -746,9 +746,17 @@ async function connectWallet() {
       const signer = provider.getSigner();
       const userAddress = await signer.getAddress();
 
+      // Clear any wallet connection messages
+      if (window.clearConnectionMessage) {
+        clearConnectionMessage();
+      }
+
       // Store connection state
       sessionStorage.setItem("walletConnected", "true");
       sessionStorage.setItem("userAddress", userAddress);
+
+      // Add connected class to body
+      document.body.classList.add("connected");
 
       updateUIOnConnect(userAddress);
 
@@ -759,10 +767,7 @@ async function connectWallet() {
       await updateBalances(provider, userAddress);
     } catch (error) {
       console.error("Error during wallet connection:", error);
-      showCustomMessage(
-        "Failed to connect wallet. Check console for details.",
-        "error"
-      );
+      showCustomMessage("Failed to connect wallet.", "error");
     }
   } else if (!window.ethereum) {
     showCustomMessage("Please install MetaMask to use this feature.", "error");
@@ -771,41 +776,43 @@ async function connectWallet() {
 
 window.userAddress = userAddress;
 
-// Reconnect wallet on page reload if session is active
 async function reconnectWallet() {
-  try {
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    const signer = provider.getSigner();
-    const userAddress = await signer.getAddress();
+  if (sessionStorage.getItem("walletConnected") === "true") {
+    try {
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      const userAddress = await signer.getAddress();
 
-    updateUIOnConnect(userAddress);
+      document.body.classList.add("connected");
 
-    // Initialize contracts
-    initializeContracts(signer);
-
-    // Update balances
-    await updateBalances(provider, userAddress);
-  } catch (error) {
-    console.error("Error during wallet reconnection:", error);
-    disconnectWallet();
+      updateUIOnConnect(userAddress);
+      initializeContracts(signer);
+      await updateBalances(provider, userAddress);
+    } catch (error) {
+      console.error("Error during wallet reconnection:", error);
+      disconnectWallet();
+    }
   }
 }
 
-// Function to disconnect wallet
+// ✅ Run this function on every page load
+window.addEventListener("DOMContentLoaded", reconnectWallet);
+
 function disconnectWallet() {
   console.log("Disconnect Wallet function called.");
-  if (walletConnected) {
-    console.log("Wallet is connected. Disconnecting...");
-    sessionStorage.clear(); // Clear session storage
-    resetUI(); // Reset the UI
-    walletConnected = false;
-    console.log("Wallet disconnected.");
+
+  if (sessionStorage.getItem("walletConnected") === "true") {
+    sessionStorage.clear(); // ✅ Clear session storage to remove connection state
+    resetUI(); // ✅ Reset the UI elements
+    walletConnected = false; // ✅ Ensure the variable is updated
+    document.body.classList.remove("connected");
+    console.log("Wallet disconnected on all pages.");
   } else {
     console.warn("No wallet is currently connected.");
   }
 }
+////////////
 
-// Reset UI on disconnect or error
 function resetUI() {
   console.log("Resetting UI...");
 
@@ -833,12 +840,14 @@ function resetUI() {
     console.log("Disconnect Wallet button disabled but remains visible.");
   }
 
-  // Reset balance fields
-  ["ethBalance", "wethBalance", "stbBalance", "collateralBalance"].forEach(
+  // Reset balance fields and remove active class
+  ["ethBalance", "wethBalance", "collateralBalance", "stbBalance"].forEach(
     (id) => {
       const element = document.getElementById(id);
       if (element) {
         element.innerText = "-";
+        //element.classList.remove("active-balance"); // Remove active class
+        element.closest(".box").classList.remove("active-box"); // Remove active class from the box
         console.log(`Reset ${id} to "-".`);
       }
     }
@@ -883,8 +892,6 @@ function initializeContracts(signer) {
   stbContract = new ethers.Contract(stbContractAddress, stbAbi, signer);
   wethContract = new ethers.Contract(wethContractAddress, erc20Abi, signer);
 }
-
-// Update balances function
 async function updateBalances(provider, userAddress) {
   try {
     if (!provider || !userAddress) {
@@ -892,21 +899,26 @@ async function updateBalances(provider, userAddress) {
       return;
     }
 
+    // Clear connection message when updating balances
+    if (window.clearConnectionMessage) {
+      clearConnectionMessage();
+    }
+
     const ethBalance = await provider.getBalance(userAddress);
     const formattedEth = ethers.utils.formatEther(ethBalance);
     const ethElement = document.getElementById("ethBalance");
-    if (ethElement) ethElement.innerText = parseFloat(formattedEth).toFixed(2);
+    if (ethElement) {
+      ethElement.innerText = parseFloat(formattedEth).toFixed(2);
+      ethElement.closest(".box").classList.add("active-box"); // Add active class to the box
+    }
 
     const wethBalance = await wethContract.balanceOf(userAddress);
     const formattedWeth = ethers.utils.formatEther(wethBalance);
     const wethElement = document.getElementById("wethBalance");
-    if (wethElement)
+    if (wethElement) {
       wethElement.innerText = parseFloat(formattedWeth).toFixed(2);
-
-    const stbBalance = await stbContract.balanceOf(userAddress);
-    const formattedStb = ethers.utils.formatEther(stbBalance);
-    const stbElement = document.getElementById("stbBalance");
-    if (stbElement) stbElement.innerText = parseFloat(formattedStb).toFixed(2);
+      wethElement.closest(".box").classList.add("active-box"); // Add active class to the box
+    }
 
     const collateralBalance = await stbeContract.getCollateralBalanceOfUser(
       userAddress,
@@ -914,8 +926,18 @@ async function updateBalances(provider, userAddress) {
     );
     const formattedCollateral = ethers.utils.formatEther(collateralBalance);
     const collateralElement = document.getElementById("collateralBalance");
-    if (collateralElement)
+    if (collateralElement) {
       collateralElement.innerText = parseFloat(formattedCollateral).toFixed(2);
+      collateralElement.closest(".box").classList.add("active-box"); // Add active class to the box
+    }
+
+    const stbBalance = await stbContract.balanceOf(userAddress);
+    const formattedStb = ethers.utils.formatEther(stbBalance);
+    const stbElement = document.getElementById("stbBalance");
+    if (stbElement) {
+      stbElement.innerText = parseFloat(formattedStb).toFixed(2);
+      stbElement.closest(".box").classList.add("active-box"); // Add active class to the box
+    }
 
     console.log("Balances updated successfully.");
   } catch (error) {

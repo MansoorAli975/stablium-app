@@ -21,3 +21,4 @@ node_modules/
 
 #lib/
 !lib/forge-std/
+.vercel

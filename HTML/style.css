@@ -203,12 +203,13 @@ body {
     text-decoration: none; /* Remove underline */
     font-size: 14px;
     font-weight: 700;
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color 0.3s ease;
+    
 }
 
 .action-link:hover {
     color: #FFFFFF; /* Change text color on hover */
-    text-shadow: 0px 0px 5px #FFFFFF; /* Add a glow effect */
+    /* text-shadow: 0px 0px 5px #FFFFFF;  Add a glow effect  */
     cursor: pointer; /* Show pointer cursor */
 }
 
@@ -609,7 +610,7 @@ body {
 .status-message {
     margin-top: 10px;
     font-size: 14px;
-    color: #747b8d; /* Inactive color */
+    color: white; /* Inactive color */
     font-family: 'Open Sans', sans-serif;
     font-weight: 400;
     text-align: left; /* Align text to the left */
@@ -749,4 +750,12 @@ body {
     font-weight: 700;
 }
 
-
+/* Default balance box color */
+.box {
+    background: #4E576B; /* Default gray background */
+  }
+  
+  /* Active balance box color */
+  .box.active-box {
+    background: white; /* White background when balances are displayed */
+  }

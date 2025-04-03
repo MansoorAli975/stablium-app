@@ -4,19 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeFi Interface - Burn and Redeem</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="stylee.css">
+    <!-- <link rel="stylesheet" href="styleb.css"> -->
+    <!-- <link rel="stylesheet" href="stylec.css"> -->
+    <!-- <link rel="stylesheet" href="styled.css"> -->
 
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
     <!-- <script src="https://cdn.jsdelivr.net/npm/ethers@5.0.0/dist/ethers.umd.min.js"></script> -->
 
 </head>
-<body>
+<body class="burn-page">
     <div class="top-bar">
         <!-- Left Section -->
         <div class="logo-section">
-            <img src="onlyLogo.svg" alt="Logo" class="logo-image-small">
-            <img src="logoText.svg" alt="Logo Text" class="logo-text">
+            <a href="index.html"><img src="onlyLogo.svg" alt="Logo" class="logo-image-small"></a>
+            <a href="index.html"><img src="logoText.svg" alt="Logo Text" class="logo-text"></a>
             <div class="the-future-text">The Future of Decentralized Finance</div>
         </div>
         <!-- Right Section -->
@@ -32,7 +35,7 @@
             <a href="wrap.html" class="action-link">Wrap ETH to WETH</a><br>
             <a href="deposit.html" class="action-link">Deposit Collateral 
                 <br> and Mint STB</a><br>
-            <a href="burn.html" class="action-link" style="color:#00F4FA;">Burn STB and
+            <a href="burn.html" class="action-link active">Burn STB and
                 <br> Redeem Collateral</a><br>
             <a href="transfer.html" class="action-link">Transfer ETH to
                 <br> Wallet</a>
@@ -70,7 +73,7 @@
         <!-- Status Bar and Transaction Message -->
         <div class="transaction-status-container">
             <div class="status-bar"></div>
-            <div id="statusMessage" class="status-message">Awaiting Transaction...</div>
+            <div id="statusMessage" class="status-message"></div>
         </div>
     </div>
 
@@ -90,15 +93,15 @@
                 </div>
             </div>
             <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">STB Balance</div>
-                    <div id="stbBalance" class="balance-value">-</div>
+                <div class="box  collateral-box">
+                    <div class="balance-label">Collateral Balance</div>
+                    <div id="collateralBalance" class="balance-value">-</div>
                 </div>
             </div>
             <div class="balance-box">
                 <div class="box">
-                    <div class="balance-label">Collateral Balance</div>
-                    <div id="collateralBalance" class="balance-value">-</div>
+                    <div class="balance-label">STB Balance</div>
+                    <div id="stbBalance" class="balance-value">-</div>
                 </div>
             </div>
         </div> 

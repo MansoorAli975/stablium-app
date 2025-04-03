@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DeFi Interface - Wrap ETH to WETH</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="stylee.css">
+    <!-- <link rel="stylesheet" href="styleb.css"> -->
+    <!-- <link rel="stylesheet" href="stylec.css"> -->
+    <!-- <link rel="stylesheet" href="styled.css"> -->
+
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
@@ -12,21 +16,24 @@
     <div class="top-bar">
         <!-- Left Section -->
         <div class="logo-section">
-            <img src="onlyLogo.svg" alt="Logo" class="logo-image-small">
-            <img src="logoText.svg" alt="Logo Text" class="logo-text">
+            <a href="index.html"><img src="onlyLogo.svg" alt="Logo" class="logo-image-small"></a>
+            <a href="index.html"><img src="logoText.svg" alt="Logo Text" class="logo-text"></a>
             <div class="the-future-text">The Future of Decentralized Finance</div>
         </div>
         <!-- Right Section -->
         <div class="button-section">
             <button class="vector-btn gradient-btn" id="connectWalletBtn">Connect Wallet</button>
-            <button class="vector-btn black-btn" id="disconnectWalletBtn" style="display: none;">Disconnect Wallet</button>
+            <!-- <button class="vector-btn black-btn" id="disconnectWalletBtn" style="display: none;">Disconnect Wallet</button> -->
+            <button id="disconnectWalletBtn" class="vector-btn black-btn">Disconnect Wallet</button>
         </div>
     </div>
 
     <div class="left-box">
         <div class="box-content">
             <br><br><br><br><br>
-            <a href="connect.html" class="action-link">Connect Wallet</a><br>
+            
+            <!-- <a href="wrap.html" class="action-link " style="color:#00F4FA;">Wrap ETH to WETH</a><br> -->
+            <a href="wrap.html" class="action-link active">Wrap ETH to WETH</a><br>
             <a href="deposit.html" class="action-link">Deposit Collateral <br> and Mint STB</a><br>
             <a href="burn.html" class="action-link">Burn STB and <br> Redeem Collateral</a><br>
             <a href="transfer.html" class="action-link">Transfer ETH to <br> Wallet</a>
@@ -39,7 +46,7 @@
         </div>
     </div>
 
-    <div class="middle-box">
+    <div class="middle-box-transaction">
         <div class="vector-background"></div>
         <div class="connect-your-wallet">Wrap ETH to WETH</div>
         <div class="transaction-instructions">
@@ -54,17 +61,19 @@
         <div class="transaction-container">
             <!-- Input field for ETH amount -->
             <input type="number" id="wrapAmountInput" class="transaction-input" placeholder="Enter amount of ETH" step="0.01" min="0.01" />
-
+            
             <!-- Transaction Button -->
-            <button id="wrapEthBtn" class="transaction-btn">
+            <!-- <div class="transaction-btn">
                 Wrap ETH
-            </button>
+            </div> -->
+            <div class="transaction-btn" id="wrapEthBtn">Wrap ETH</div>
+
         </div>
 
         <!-- Status Bar and Transaction Message -->
         <div class="transaction-status-container">
             <div class="status-bar"></div>
-            <div class="status-message" id="statusMessage" style="display: none;">Awaiting Transaction...</div>
+            <div class="status-message" id="statusMessage" style="display: none;"></div>
         </div>
 
         <!-- "!" Icon at the top right -->
@@ -92,15 +101,15 @@
                 </div>
             </div>
             <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">STB Balance</div>
-                    <div class="balance-value" id="stbBalance">-</div>
+                <div class="box collateral-box">
+                    <div class="balance-label">Collateral Balance</div>
+                    <div class="balance-value" id="collateralBalance">-</div>
                 </div>
             </div>
             <div class="balance-box">
                 <div class="box">
-                    <div class="balance-label">Collateral Balance</div>
-                    <div class="balance-value" id="collateralBalance">-</div>
+                    <div class="balance-label">STB Balance</div>
+                    <div class="balance-value" id="stbBalance">-</div>
                 </div>
             </div>
         </div>

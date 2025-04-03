@@ -1,80 +1,95 @@
-// Check wallet connection and update UI accordingly
-async function checkWalletConnection() {
-  const connectWalletBtn = document.getElementById("connectWalletBtn");
-  const disconnectWalletBtn = document.getElementById("disconnectWalletBtn");
+window.addEventListener("DOMContentLoaded", () => {
+  const wrapEthBtn = document.getElementById("wrapEthBtn");
+  if (wrapEthBtn) wrapEthBtn.addEventListener("click", wrapEthToWeth);
 
-  try {
-    if (window.ethereum) {
-      const accounts = await ethereum.request({ method: "eth_accounts" });
+  // Clear message if wallet is already connected (matches deposit.js behavior)
+  if (sessionStorage.getItem("walletConnected") === "true") {
+    window.clearConnectionMessage();
+  }
+});
 
-      if (accounts.length > 0) {
-        const userAddress = accounts[0];
-        console.log("Wallet is connected:", userAddress);
-
-        connectWalletBtn.innerText = "Wallet Connected";
-        connectWalletBtn.disabled = true;
-        disconnectWalletBtn.style.display = "inline-block";
-
-        const provider = new ethers.providers.Web3Provider(window.ethereum);
-        initializeContracts(provider);
-        updateBalances(provider, userAddress);
-      } else {
-        console.log("No wallet connected.");
-        resetWalletState();
-      }
-    } else {
-      console.error("MetaMask is not installed.");
-      resetWalletState();
+// Listen for wallet connection events
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts.length > 0) {
+      window.clearConnectionMessage();
     }
-  } catch (error) {
-    console.error("Error checking wallet connection:", error);
-    resetWalletState();
-  }
-}
-
-// Reset wallet UI and balances to default state
-function resetWalletState() {
-  const connectWalletBtn = document.getElementById("connectWalletBtn");
-  const disconnectWalletBtn = document.getElementById("disconnectWalletBtn");
-
-  if (connectWalletBtn) {
-    connectWalletBtn.innerText = "Connect Wallet";
-    connectWalletBtn.disabled = false;
-  }
-
-  if (disconnectWalletBtn) {
-    disconnectWalletBtn.style.display = "none";
-  }
-
-  // Reset balance fields
-  ["ethBalance", "wethBalance", "stbBalance", "collateralBalance"].forEach(
-    (id) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.innerText = "-";
-      }
-    }
-  );
-
-  console.log("Wallet state reset successfully.");
-}
-
-// Disconnect wallet functionality
-// Wrap.js: Ensure the disconnect button references the function from index.js
-document
-  .getElementById("disconnectWalletBtn")
-  .addEventListener("click", function () {
-    console.log("Disconnect button clicked in wrap.js");
-    window.disconnectWallet(); // Calling the function from index.js
   });
+}
+// Global function to clear connection messages
+window.clearConnectionMessage = function () {
+  const statusMessage = document.getElementById("statusMessage");
+  if (
+    statusMessage &&
+    (statusMessage.innerText.includes("connect your wallet") ||
+      statusMessage.innerText.includes("Please connect your wallet"))
+  ) {
+    statusMessage.style.display = "none";
+    statusMessage.innerText = "";
+  }
+};
 
-// Wrap ETH to WETH
+// Status bar functions (same as deposit.js)
+function updateStatusBar(progress) {
+  const statusBar = document.querySelector(".status-bar");
+  if (statusBar) {
+    statusBar.style.width = `${progress}%`;
+    statusBar.style.backgroundColor = "#00FFFF";
+  }
+}
+
+function resetStatusBar() {
+  const statusBar = document.querySelector(".status-bar");
+  if (statusBar) {
+    statusBar.style.width = "0%";
+    statusBar.style.backgroundColor = "#747b8d";
+  }
+}
+
+async function incrementStatusBar(targetProgress, duration) {
+  return new Promise((resolve) => {
+    const startTime = Date.now();
+    const startProgress = parseFloat(
+      document.querySelector(".status-bar").style.width || "0"
+    );
+    const update = () => {
+      const elapsedTime = Date.now() - startTime;
+      const progress =
+        startProgress +
+        ((targetProgress - startProgress) * elapsedTime) / duration;
+      updateStatusBar(progress);
+      if (elapsedTime < duration) requestAnimationFrame(update);
+      else {
+        updateStatusBar(targetProgress);
+        resolve();
+      }
+    };
+    update();
+  });
+}
+
 async function wrapEthToWeth() {
+  const wrapEthBtn = document.getElementById("wrapEthBtn");
+  // Clear message immediately when function starts
+
+  if (wrapEthBtn) wrapEthBtn.disabled = true;
+
+  // FIXED: Check connection state via sessionStorage (like index.js does)
+  const isWalletConnected =
+    sessionStorage.getItem("walletConnected") === "true";
+
+  if (!window.ethereum || !isWalletConnected) {
+    showCustomMessage("Please connect your wallet first.", "error");
+    if (wrapEthBtn) wrapEthBtn.disabled = false;
+    return;
+  }
+
   const wrapAmount = parseFloat(
     document.getElementById("wrapAmountInput").value
   );
   if (isNaN(wrapAmount) || wrapAmount <= 0) {
     showCustomMessage("Please enter a valid amount to wrap.", "error");
+    if (wrapEthBtn) wrapEthBtn.disabled = false;
     return;
   }
 
@@ -82,44 +97,55 @@ async function wrapEthToWeth() {
   const statusMessage = document.getElementById("statusMessage");
 
   try {
+    resetStatusBar();
     statusMessage.style.display = "block";
-    statusMessage.innerText =
-      "Wrapping ETH to WETH... Please confirm in MetaMask.";
+    statusMessage.innerText = "Wrapping ETH to WETH...";
+
+    await incrementStatusBar(25, 2000);
 
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
+    const userAddress = await signer.getAddress();
 
-    // WETH Contract setup
-    const wethContract = new ethers.Contract(
-      wethContractAddress, // WETH address defined in index.js
-      erc20Abi, // ERC20 ABI defined in index.js
-      signer
-    );
-
-    // Wrap ETH into WETH
-    const tx = await wethContract.deposit({ value: amountInWei });
+    await incrementStatusBar(50, 2000);
+    const tx = await wethContract
+      .connect(signer)
+      .deposit({ value: amountInWei });
     await tx.wait();
+    await incrementStatusBar(100, 2000);
 
     statusMessage.innerText = `Successfully wrapped ${wrapAmount} ETH to WETH.`;
-    const userAddress = await signer.getAddress();
-    updateBalances(provider, userAddress); // Update balances after wrapping
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+
+    statusMessage.style.opacity = "0";
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
+    statusMessage.innerText =
+      "Please go to Deposit Collateral and Mint STB for the next step.";
+    statusMessage.style.opacity = "1";
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+
+    statusMessage.innerText = "";
+    statusMessage.style.display = "none";
+    resetStatusBar();
+    document.getElementById("wrapAmountInput").value = "0.0";
+    await updateBalances(provider, userAddress);
   } catch (error) {
     console.error("Error wrapping ETH:", error);
-    if (error.code === 4001) {
-      // User rejected the transaction
-      statusMessage.innerText = "Transaction cancelled.";
-    } else {
-      statusMessage.innerText = "Transaction cancelled.";
-    }
+    statusMessage.innerText = error.message.includes(
+      "user rejected transaction"
+    )
+      ? "Transaction rejected"
+      : "Transaction failed";
+    resetStatusBar();
+    document.getElementById("wrapAmountInput").value = "0.0";
+  } finally {
+    if (wrapEthBtn) wrapEthBtn.disabled = false;
+    setTimeout(() => {
+      if (statusMessage) {
+        statusMessage.style.display = "none";
+        statusMessage.innerText = "";
+      }
+    }, 5000);
   }
 }
-
-// Call checkWalletConnection on page load
-window.onload = checkWalletConnection;
-
-// Attach event listeners
-document
-  .getElementById("disconnectWalletBtn")
-  .addEventListener("click", disconnectWallet);
-
-document.getElementById("wrapEthBtn").addEventListener("click", wrapEthToWeth);
