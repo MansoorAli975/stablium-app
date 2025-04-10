@@ -922,3 +922,105 @@ body.connected .left-box .back-link {
         margin: 0.5rem 0;
     }
 }
+
+
+
+/* ADDITION FOR LARGE SCREENS */
+
+/* ============================================= */
+/* LARGE SCREEN ADJUSTMENTS (ADD AT BOTTOM OF CSS) */
+/* ============================================= */
+
+/* For screens wider than 1440px (typical large monitors) */
+@media (min-width: 90.063em) { /* 1441px / 16 */
+    body {
+      overflow-x: hidden; /* Prevent horizontal scroll */
+    }
+  
+    .start-container {
+      max-width: none;
+      padding: 0 10%;
+    }
+  
+    .coin-image {
+      right: 10%;
+      max-width: 35rem;
+    }
+  
+    .middle-box,
+    .middle-box-transaction {
+      width: 55rem;
+      left: 20rem;
+    }
+  
+    .left-box {
+      width: 18rem;
+    }
+  
+    .two-transactions-container {
+      width: 55rem;
+    }
+  }
+  
+  /* For screens wider than 1920px (Full HD and larger) */
+  @media (min-width: 120.063em) { /* 1921px / 16 */
+    .start-container {
+      padding: 0 15%;
+    }
+  
+    .coin-image {
+      right: 15%;
+      max-width: 40rem;
+    }
+  
+    .middle-box,
+    .middle-box-transaction {
+      width: 65rem;
+      left: 22rem;
+    }
+  
+    .left-box {
+      width: 20rem;
+    }
+  
+    .two-transactions-container {
+      width: 65rem;
+    }
+  
+    .transaction-input,
+    .second-transaction-input {
+      width: 18rem;
+    }
+  }
+  
+  /* For ultra-wide screens (2560px and above) */
+  @media (min-width: 160.063em) { /* 2561px / 16 */
+    html {
+      font-size: 18px; /* Slightly increase base font size */
+    }
+  
+    .start-container {
+      padding: 0 20%;
+      max-width: 160rem; /* Prevent over-stretching on huge screens */
+    }
+  
+    .coin-image {
+      right: 20%;
+      max-width: 45rem;
+    }
+  
+    .middle-box,
+    .middle-box-transaction {
+      width: 75rem;
+      left: 25rem;
+    }
+  
+    .left-box {
+      width: 23rem;
+    }
+  
+    .two-transactions-container {
+      width: 75rem;
+    }
+  }
+  
