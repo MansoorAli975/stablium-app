@@ -80,3 +80,5 @@ $ cast --help
 
 lib was included in gitignore, commented it out due to problems in forge build, check in the end if lib should be included again in gitignore
 same withg .env (uncomment in the end)
+
+Need to update favicon, might need to change it to favicon.ico

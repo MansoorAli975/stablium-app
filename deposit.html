@@ -1,120 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stablium - Deposit Collateral</title>
-    <link rel="icon" type="image/png" href="/favicon.png?ver=2">
-    <link rel="stylesheet" href="/stylee.css">
-   
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stablium - Deposit Collateral</title>
+  <!-- <link rel="icon" type="image/png" href="/favicon.png?ver=2"> -->
+  <link rel="stylesheet" href="/styleg.css">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
-    <body class="deposit-page">
-            
-        <div class="top-bar">
-        <div class="logo-section">
-            <a href="/index.html"><img src="/onlyLogo.svg" alt="Logo" class="logo-image-small"></a>
-            <a href="/index.html"><img src="/logoText.svg" alt="Logo Text" class="logo-text"></a>
-            <div class="the-future-text">The Future of Decentralized Finance</div>
-        </div>
-        <div class="button-section">
-            <button id="connectWalletBtn" class="vector-btn gradient-btn">Connect Wallet</button>
-            <button id="disconnectWalletBtn" class="vector-btn black-btn">Disconnect Wallet</button>
-        </div>
+<body class="transaction-page deposit-page">
+  <div class="scalable-container">
+    <div class="top-bar">
+      <div class="logo-section">
+        <a href="/index.html"><img src="/onlyLogo.svg" alt="Logo" class="logo-image-small"></a>
+        <a href="/index.html"><img src="/logoText.svg" alt="Logo Text" class="logo-text"></a>
+        <div class="the-future-text">The Future of Decentralized Finance</div>
+      </div>
+      <div class="button-section">
+        <button class="vector-btn gradient-btn" id="connectWalletBtn">Connect Wallet</button>
+        <button id="disconnectWalletBtn" class="vector-btn black-btn">Disconnect Wallet</button>
+      </div>
     </div>
 
-    <div class="left-box">
-        <div class="box-content">
-            <br><br><br><br><br>
-            <a href="/wrap.html" class="action-link">Wrap ETH to WETH</a><br>
-            <a href="/deposit.html" class="action-link active" >Deposit Collateral 
-               <br> and Mint STB</a><br>
-               
-               <a href="/burn.html" class="action-link">Burn STB and
-                <br> Redeem Collateral</a><br>
-            <a href="/transfer.html" class="action-link">Transfer ETH to
-               <br> Wallet</a>
-            <div class="navigation-container">
-                <a href="/wrap.html" class="back-link">back</a>
-                <a href="/burn.html" class="back-link">next</a>
-            </div>
+    <div class="page-container">
+      <div class="left-box">
+        <div class="left-box-content">
+          <div class="nav-links">
+            <a href="/wrap.html" class="action-link">Wrap ETH to WETH</a>
+            <a href="/deposit.html" class="action-link active">Deposit Collateral and Mint STB</a>
+            <a href="/burn.html" class="action-link">Burn STB and Redeem Collateral</a>
+            <a href="/transfer.html" class="action-link">Transfer ETH to Wallet</a>
+          </div>
+          
+          <div class="navigation-container">
+            <a href="/wrap.html" class="back-link">back</a>
+            <a href="/burn.html" class="back-link">next</a>
+          </div>
         </div>
+      </div>
+
+      <div class="middle-box">
+        <div class="middle-box-content">
+          <div class="box-title-container">
+            <h2 class="box-title">Deposit Collateral and Mint STB</h2>
+            <div class="box-tooltip">
+              <button class="tooltip-icon">?</button>
+              <div class="tooltip-content">
+                Lock WETH as collateral to mint STB (Stablium Stablecoin). You can redeem your collateral anytime by burning STB. <a href="#">Learn more</a>
+              </div>
+            </div>
+          </div>
+          
+          <div class="box-content">
+            <div class="instruction-text">
+              <p>Lock WETH as collateral to mint STB (Stablium Stablecoin).</p>
+              <p>You can redeem your collateral anytime by burning STB.</p>
+              
+              <div class="input-labels">
+                <span>Enter WETH amount to deposit</span>
+                <span>Enter STB amount to mint</span>
+              </div>
+            </div>
+            <div class="form-controls two-inputs">
+              <input type="number" id="depositAmountInput" class="form-input" placeholder="Enter amount of WETH" value="0" step="0.01" min="0.01" />
+              <input type="number" id="mintAmountInput" class="form-input2" placeholder="Enter amount of STB" value="0" step="0.01" min="0.01" />
+              <button id="depositAndMintBtn" class="action-button">Confirm</button>
+            </div>
+            <div class="status-container">
+              <div class="status-bar progress"></div>
+              <div class="status-message">Processing...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="balances-container">
+        <div class="balance-item">
+          <div class="balance-box eth-balance">
+            <div class="balance-label">ETH Balance</div>
+            <div class="balance-value" id="ethBalance">-</div>
+          </div>
+        </div>
+        <div class="balance-item">
+          <div class="balance-box weth-balance">
+            <div class="balance-label">WETH Balance</div>
+            <div class="balance-value" id="wethBalance">-</div>
+          </div>
+        </div>
+        <div class="balance-item">
+          <div class="balance-box collateral-balance">
+            <div class="balance-label">Collateral Balance</div>
+            <div class="balance-value" id="collateralBalance">-</div>
+          </div>
+        </div>
+        <div class="balance-item">
+          <div class="balance-box stb-balance">
+            <div class="balance-label">STB Balance</div>
+            <div class="balance-value" id="stbBalance">-</div>
+          </div>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div class="middle-box-transaction">
-        <div class="vector-background"></div>
-        <div class="connect-your-wallet">Deposit Collateral and Mint STB</div>
-        <div class="transaction-instructions">
-            <br>
-            <div class="instruction-line">Lock WETH as collateral to mint STB (Stablium Stablecoin).</div>
-            <div class="instruction-line">You can redeem your collateral anytime by burning STB.</div>
-            <br><br>
-            <i>Enter WETH amount to deposit</i><span style="padding-left: 30px;"><i>Enter STB amount to mint</i></span>
-        </div>
-         
-        <div class="two-transactions-container">
-            <input 
-                type="number" 
-                id="depositAmountInput" 
-                class="transaction-input" 
-                placeholder="Enter amount of WETH" 
-                value="0" 
-                step="0.01" 
-                min="0.00" 
-                aria-label="Enter WETH Amount" />
-            <input 
-                type="number" 
-                id="mintAmountInput" 
-                class="second-transaction-input" 
-                placeholder="Enter amount of STB" 
-                value="0" 
-                step="0.01" 
-                min="0.00" 
-                aria-label="Enter STB Amount" />
-                <button id="depositAndMintBtn" class="transaction-btn">Confirm</button>        
-                <!-- <div class="transaction-btn" id="depositAndMintBtn">Confirm</div> -->
-                <!-- <button id="depositAndMintBtn" class="transaction-btn" disabled>Confirm</button> -->
-                                
-        </div>
+  <script>
+    // Enhanced viewport detection
+    function checkViewport() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--real-vh', `${vh}px`);
+      document.body.style.height = `${window.innerHeight}px`;
+      
+      document.body.classList.remove('small-desktop', 'mobile-device');
+      
+      if (window.innerWidth <= 1366) {
+        document.body.classList.add('small-desktop');
+      }
+      if (window.innerWidth <= 768) {
+        document.body.classList.add('mobile-device');
+      }
+    }
 
-        <div class="transaction-status-container">
-            <div class="status-bar"></div>
-            <!-- <div id="statusMessage" class="status-message"></div> -->
-            <div class="status-message" id="statusMessage" style="display: none;"></div>
-        </div>
-    </div>
+    function calculateScale() {
+      const targetWidth = 1366;
+      const currentWidth = window.innerWidth;
+      const scale = currentWidth / targetWidth;
+      document.documentElement.style.setProperty('--scale-factor', scale);
+    }
 
-    <div class="main-container">
-        <div class="balances-container">
-            <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">ETH Balance</div>
-                        <div id="ethBalance" class="balance-value">-</div>
-                </div>
-            </div>
-            <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">WETH Balance</div>
-                    <div id="wethBalance" class="balance-value">-</div>
-                </div>
-            </div>
-            <div class="balance-box">
-                <div class="box collateral-box">
-                    <div class="balance-label">Collateral Balance</div>
-                    <div id="collateralBalance" class="balance-value">-</div>
-                </div>
-            </div>
-            <div class="balance-box">
-                <div class="box">
-                    <div class="balance-label">STB Balance</div>
-                    <div id="stbBalance" class="balance-value">-</div>
-                </div>
-            </div>
-        </div>
-    </div>
+    document.documentElement.style.visibility = 'hidden';
+  checkViewport();
+  calculateScale();
+  window.addEventListener('resize', function() {
+    requestAnimationFrame(function() {
+      document.documentElement.style.visibility = 'hidden';
+      checkViewport();
+      calculateScale();
+      document.documentElement.style.visibility = 'visible';
+    });
+  });
+  document.documentElement.style.visibility = 'visible';
+  </script>
 
-    <script src="/index.js"></script>
-    <script src="/deposit.js"></script>
+  <script src="/index.js"></script>
+  <script src="/deposit.js"></script>
 </body>
 </html>

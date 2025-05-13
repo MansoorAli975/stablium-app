@@ -712,9 +712,7 @@ const helperConfigAbi = [
   },
 ];
 
-///////////////////////////////////////////////
-//////////////////////////////////////////////
-
+////start
 // Track connection status
 let walletConnected = false;
 
@@ -847,11 +845,17 @@ function resetUI() {
       if (element) {
         element.innerText = "-";
         //element.classList.remove("active-balance"); // Remove active class
-        element.closest(".box").classList.remove("active-box"); // Remove active class from the box
+        element.closest(".balance-box").classList.remove("active-box"); // Remove active class from the box
         console.log(`Reset ${id} to "-".`);
       }
     }
   );
+
+  // Reset all input fields to '0'
+  const inputFields = document.querySelectorAll(".form-input");
+  inputFields.forEach((input) => {
+    input.value = "0";
+      });
 
   walletConnected = false;
   console.log("UI reset successfully.");
@@ -909,7 +913,7 @@ async function updateBalances(provider, userAddress) {
     const ethElement = document.getElementById("ethBalance");
     if (ethElement) {
       ethElement.innerText = parseFloat(formattedEth).toFixed(2);
-      ethElement.closest(".box").classList.add("active-box"); // Add active class to the box
+      ethElement.closest(".balance-box").classList.add("active-box"); // Add active class to the box
     }
 
     const wethBalance = await wethContract.balanceOf(userAddress);
@@ -917,7 +921,7 @@ async function updateBalances(provider, userAddress) {
     const wethElement = document.getElementById("wethBalance");
     if (wethElement) {
       wethElement.innerText = parseFloat(formattedWeth).toFixed(2);
-      wethElement.closest(".box").classList.add("active-box"); // Add active class to the box
+      wethElement.closest(".balance-box").classList.add("active-box"); // Add active class to the box
     }
 
     const collateralBalance = await stbeContract.getCollateralBalanceOfUser(
@@ -928,7 +932,7 @@ async function updateBalances(provider, userAddress) {
     const collateralElement = document.getElementById("collateralBalance");
     if (collateralElement) {
       collateralElement.innerText = parseFloat(formattedCollateral).toFixed(2);
-      collateralElement.closest(".box").classList.add("active-box"); // Add active class to the box
+      collateralElement.closest(".balance-box").classList.add("active-box"); // Add active class to the box
     }
 
     const stbBalance = await stbContract.balanceOf(userAddress);
@@ -936,7 +940,7 @@ async function updateBalances(provider, userAddress) {
     const stbElement = document.getElementById("stbBalance");
     if (stbElement) {
       stbElement.innerText = parseFloat(formattedStb).toFixed(2);
-      stbElement.closest(".box").classList.add("active-box"); // Add active class to the box
+      stbElement.closest(".balance-box").classList.add("active-box"); // Add active class to the box
     }
 
     console.log("Balances updated successfully.");

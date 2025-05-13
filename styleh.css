@@ -1,0 +1,468 @@
+/* ============================================= */
+/* Stablium - Main Stylesheet                   */
+/* Design System:                               */
+/* - Primary Gradient: #0071BC to #00FFFF       */
+/* - Breakpoints: Fluid scaling with clamp()    */
+/* - Z-index: Base(1-10), Components(10-100)   */
+/* - Animation: 300ms ease transitions         */
+/* ============================================= */
+
+:root {
+    /* ============ COLOR SYSTEM ============ */
+    --color-dark: #191D26;
+    --color-dark-secondary: #1F2430;
+    --color-dark-tertiary: #2E3548;
+    --color-gray: #4E576B;
+    --color-light-gray: #d1d2d6;
+    --color-white: #FFFFFF;
+    
+    /* Text Colors */
+    --text-primary: #FFFFFF;
+    --text-secondary: #8890a3;
+    --text-inactive: #747b8d;
+    --text-success: #00D8ED;
+    --text-error: #ff6b6b;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF);
+    
+    /* ============ SPACING SYSTEM ============ */
+    --max-content-width: 67.5rem;
+    --responsive-padding: clamp(1rem, 5vw, 2rem);
+    --responsive-gap: clamp(0.5rem, 2vw, 1rem);
+    --responsive-margin: clamp(1rem, 2vw, 1.5rem);
+    
+    /* ============ TYPOGRAPHY ============ */
+    --font-large: clamp(1.5rem, 1.8vw, 1.8rem);
+    --font-medium: clamp(1.2rem, 1.4vw, 1.35rem);
+    --font-small: clamp(0.9rem, 1.1vw, 1rem);
+    --font-xsmall: clamp(0.8rem, 1vw, 0.9rem);
+    
+    /* ============ Z-INDEX ============ */
+    --z-base: 1;
+    --z-content: 10;
+    --z-tooltip: 100;
+    --z-modal: 1000;
+    --z-overlay: 10000;
+  }
+  
+  /* ============ BASE STYLES ============ */
+  html {
+    font-size: clamp(16px, 1vw, 18px);
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-dark);
+    font-family: 'Open Sans', sans-serif;
+    min-height: 100vh;
+    color: var(--text-primary);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  
+  button {
+    margin: 0;
+    padding: 0;
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+    background: transparent;
+    cursor: pointer;
+    line-height: 1;
+    will-change: transform, opacity;
+  }
+  
+  /* ============ LAYOUT COMPONENTS ============ */
+  .start-container {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    padding: 0 var(--responsive-padding);
+  }
+  
+  .text-content {
+    flex: 1.5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: var(--responsive-padding);
+  }
+  
+  .image-content {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: min(50vh, 500px);
+    aspect-ratio: 1/1;
+    overflow: hidden;
+  }
+  
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--responsive-padding);
+    background-color: var(--color-dark);
+    position: sticky;
+    top: 0;
+    z-index: var(--z-content);
+    gap: var(--responsive-gap);
+    contain: layout;
+  }
+  
+  /* ============ TYPOGRAPHY ============ */
+  .welcome-to {
+    font-size: var(--font-large);
+    font-weight: 400;
+    margin-bottom: 0.9rem;
+  }
+  
+  .future-text {
+    font-size: var(--font-medium);
+    font-weight: 700;
+    margin-bottom: 1.35rem;
+  }
+  
+  .main-text {
+    font-size: var(--font-xsmall);
+    font-weight: 400;
+    line-height: 1.6;
+    margin-bottom: var(--responsive-gap);
+    word-wrap: break-word;
+    max-width: 100%;
+    hyphens: auto;
+  }
+  
+  /* ============ BUTTONS ============ */
+  .get-started,
+  .action-button {
+    display: inline-block;
+    padding: clamp(0.5rem, 1.5vw, 0.75rem) clamp(1rem, 3vw, 1.875rem);
+    background: var(--gradient-primary);
+    color: black;
+    font-size: var(--font-xsmall);
+    font-weight: 700;
+    border-radius: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 0.1125rem solid transparent;
+    will-change: transform, box-shadow;
+  }
+  
+  .get-started {
+    min-width: 11rem;
+    margin-top: 1.8rem;
+  }
+  
+  .action-button {
+    width: clamp(10rem, 15vw, 12.5rem);
+  }
+  
+  .get-started:hover,
+  .action-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0.3rem 0.5rem rgba(0, 0, 0, 0.2);
+  }
+  
+  .get-started:focus-visible,
+  .action-button:focus-visible {
+    outline: 2px solid #00A9D7;
+    outline-offset: 2px;
+  }
+  
+  /* ============ TRANSACTION PAGES ============ */
+  .page-container {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: var(--responsive-gap);
+    width: 100%;
+    max-width: var(--max-content-width);
+    margin: 0 auto;
+    padding: var(--responsive-padding);
+    min-height: calc(100vh - 5rem);
+  }
+  
+  .left-box {
+    width: clamp(13rem, 15vw, 16rem);
+    background: var(--color-dark-tertiary);
+    padding: var(--responsive-padding);
+    color: var(--text-inactive);
+    font-size: var(--font-xsmall);
+    font-weight: 700;
+    position: sticky;
+    top: 4rem;
+    height: calc(100vh - 4rem);
+    overflow-y: auto;
+    contain: layout paint style;
+  }
+  
+  .middle-box {
+    position: relative;
+    background: var(--color-dark-secondary);
+    padding: var(--responsive-padding) clamp(3rem, 5vw, 4.5rem);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: var(--responsive-gap);
+    contain: content;
+  }
+  
+  .box-title {
+    font-size: clamp(1.2rem, 1.3vw, 1.5rem);
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    position: relative;
+    z-index: var(--z-base);
+  }
+  
+  /* ============ FORM ELEMENTS ============ */
+  .form-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--responsive-gap);
+    margin-bottom: var(--responsive-margin);
+  }
+  
+  .form-controls.two-inputs {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--responsive-gap);
+  }
+  
+  .form-input {
+    padding: 0.75rem 1rem;
+    background: #333;
+    color: var(--text-primary);
+    border: 1px solid #444;
+    border-radius: 0.25rem;
+    font-size: var(--font-xsmall);
+    width: 100%;
+    transition: all 0.3s ease;
+  }
+  
+  .form-input:focus {
+    outline: 2px solid #00A9D7;
+    box-shadow: 0 0 0 2px rgba(0,169,215,0.2);
+  }
+  
+  /* ============ BALANCE DISPLAYS ============ */
+  .balances-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--responsive-gap);
+    padding: var(--responsive-padding);
+    margin: 0 auto;
+    max-width: var(--max-content-width);
+    contain: content;
+  }
+  
+  .balance-item {
+    flex: 1 1 clamp(150px, 25% - var(--responsive-gap), 250px);
+  }
+  
+  .balance-box {
+    width: 100%;
+    height: 4.4375rem;
+    background: var(--color-gray);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0.625rem;
+    transition: all 0.3s ease;
+  }
+  
+  .balance-box.active-box {
+    background: var(--color-white);
+  }
+  
+  .balance-box.collateral-box.active-box {
+    background: var(--color-light-gray);
+  }
+  
+  .balance-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.3125rem;
+    text-align: center;
+    color: black;
+  }
+  
+  .balance-value {
+    font-size: 1rem;
+    font-weight: bold;
+    color: black;
+    text-align: center;
+  }
+  
+  /* ============ STATUS INDICATORS ============ */
+  .status-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    margin: var(--responsive-margin) 0;
+  }
+  
+  .status-bar {
+    width: 100%;
+    height: 0.25rem;
+    background-color: #e0e0e0;
+    border-radius: 0.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+  }
+  
+  .status-bar.progress {
+    background: var(--gradient-primary);
+    background-size: 200% 100%;
+    animation: progress-animation 1.5s linear infinite;
+  }
+  
+  .status-message {
+    font-size: var(--font-xsmall);
+    color: var(--text-primary);
+    margin-top: 0.5rem;
+    line-height: 1.4;
+    transition: all 0.3s ease;
+  }
+  
+  .status-message.success {
+    color: var(--text-success);
+  }
+  
+  .status-message.error {
+    color: var(--text-error);
+  }
+  
+  @keyframes progress-animation {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* ============ TOOLTIP SYSTEM ============ */
+  .box-tooltip {
+    position: absolute;
+    top: var(--responsive-padding);
+    right: var(--responsive-padding);
+    z-index: var(--z-tooltip);
+  }
+  
+  .tooltip-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    will-change: transform, background;
+  }
+  
+  .tooltip-icon:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+  }
+  
+  .tooltip-content {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    background: var(--color-dark-tertiary);
+    color: var(--text-primary);
+    padding: var(--responsive-padding);
+    border-radius: 0.375rem;
+    font-size: var(--font-xsmall);
+    line-height: 1.5;
+    visibility: hidden;
+    opacity: 0;
+    transition: all 0.3s ease;
+    width: max-content;
+    max-width: min(24rem, 90vw);
+    z-index: var(--z-tooltip);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    will-change: opacity, visibility;
+  }
+  
+  .tooltip-content::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    right: 1rem;
+    border-width: 0.5rem;
+    border-style: solid;
+    border-color: transparent transparent var(--color-dark-tertiary) transparent;
+  }
+  
+  .tooltip-icon:focus + .tooltip-content,
+  .tooltip-icon:hover + .tooltip-content,
+  .tooltip-content:hover {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  /* ============ CONNECTION STATES ============ */
+  body:not(.connected) .left-box .action-link {
+    color: var(--text-inactive);
+  }
+  
+  body.connected .left-box .action-link {
+    color: var(--text-primary);
+  }
+  
+  body.connected .left-box .action-link.active {
+    color: #00F4FA;
+    font-weight: 600;
+  }
+  
+  /* ============ MEDIA QUERIES ============ */
+  @media (max-width: 768px) {
+    .start-container {
+      flex-direction: column;
+    }
+    
+    .page-container {
+      grid-template-columns: 1fr;
+    }
+    
+    .left-box {
+      position: static;
+      height: auto;
+      width: 100%;
+    }
+    
+    .balances-container {
+      flex-direction: column;
+    }
+    
+    .form-controls.two-inputs {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }

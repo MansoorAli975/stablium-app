@@ -1,7 +1,7 @@
 // Wait for DOM content to be fully loaded
-document.addEventListener("DOMContentLoaded", () => {
-  console.log("STBE Contract Address:", stbeContractAddress);
-  console.log("WETH Contract Address:", wethContractAddress);
+window.addEventListener("DOMContentLoaded", () => {
+  const redeemButton = document.getElementById("redeem-button");
+  if (redeemButton) redeemButton.addEventListener("click", burnAndRedeem);
 
   // Attach event listeners for the input fields to dynamically toggle the button
   document
@@ -11,24 +11,24 @@ document.addEventListener("DOMContentLoaded", () => {
     .getElementById("redeem-collateral")
     .addEventListener("input", toggleRedeemButton);
 
-  // Clear message if wallet is already connected
-  if (window.walletConnected) {
+  // Clear message if wallet is already connected (matches wrap.js behavior)
+  if (sessionStorage.getItem("walletConnected") === "true") {
     window.clearConnectionMessage();
-  }
-
-  // Listen for wallet connection events
-  if (window.ethereum) {
-    window.ethereum.on("accountsChanged", (accounts) => {
-      if (accounts.length > 0) {
-        window.clearConnectionMessage();
-      }
-    });
   }
 });
 
-// Global function to clear connection messages
+// Listen for wallet connection events
+if (window.ethereum) {
+  window.ethereum.on("accountsChanged", (accounts) => {
+    if (accounts.length > 0) {
+      window.clearConnectionMessage();
+    }
+  });
+}
+
+// Global function to clear connection messages (updated to match wrap.js)
 window.clearConnectionMessage = function () {
-  const statusMessage = document.getElementById("statusMessage");
+  const statusMessage = document.querySelector(".status-message");
   if (
     statusMessage &&
     (statusMessage.innerText.includes("connect your wallet") ||
@@ -39,32 +39,30 @@ window.clearConnectionMessage = function () {
   }
 };
 
-// Function to update the status bar width
+// Status bar functions (updated to match wrap.js)
 function updateStatusBar(progress) {
   const statusBar = document.querySelector(".status-bar");
   if (statusBar) {
     statusBar.style.width = `${progress}%`;
-    statusBar.style.backgroundColor = "#00FFFF"; // Active color
+    statusBar.style.backgroundColor = "#00FFFF";
   }
 }
 
-// Function to reset the status bar
 function resetStatusBar() {
   const statusBar = document.querySelector(".status-bar");
   if (statusBar) {
     statusBar.style.width = "0%";
-    statusBar.style.backgroundColor = "#747b8d"; // Inactive color
+    statusBar.style.backgroundColor = "#747b8d";
   }
 }
 
-// Function to incrementally update the status bar
 async function incrementStatusBar(targetProgress, duration) {
   return new Promise((resolve) => {
     const startTime = Date.now();
+    const statusBar = document.querySelector(".status-bar");
     const startProgress = parseFloat(
-      document.querySelector(".status-bar").style.width || "0"
+      statusBar ? (statusBar.style.width || "0").replace("%", "") : "0"
     );
-
     const update = () => {
       const elapsedTime = Date.now() - startTime;
       const progress =
@@ -72,10 +70,8 @@ async function incrementStatusBar(targetProgress, duration) {
         ((targetProgress - startProgress) * elapsedTime) / duration;
 
       updateStatusBar(progress);
-
-      if (elapsedTime < duration) {
-        requestAnimationFrame(update);
-      } else {
+      if (elapsedTime < duration) requestAnimationFrame(update);
+      else {
         updateStatusBar(targetProgress);
         resolve();
       }
@@ -85,17 +81,34 @@ async function incrementStatusBar(targetProgress, duration) {
   });
 }
 
-////////REDEEM////////
-document.getElementById("redeem-button").addEventListener("click", async () => {
+// Utility to enable or disable the Redeem button based on inputs
+function toggleRedeemButton() {
+  const burnAmount = parseFloat(document.getElementById("burn-stb").value);
+  const redeemAmount = parseFloat(
+    document.getElementById("redeem-collateral").value
+  );
+
   const redeemButton = document.getElementById("redeem-button");
-  const statusMessage = document.getElementById("statusMessage");
 
-  if (redeemButton) {
-    redeemButton.disabled = true; // Disable button during transaction
-  }
+  redeemButton.disabled =
+    isNaN(burnAmount) ||
+    burnAmount <= 0 ||
+    isNaN(redeemAmount) ||
+    redeemAmount <= 0;
+}
 
-  // Ensure wallet is connected before proceeding
-  if (!window.ethereum || !walletConnected) {
+async function burnAndRedeem() {
+  const redeemButton = document.getElementById("redeem-button");
+  const statusMessage = document.querySelector(".status-message");
+  const statusContainer = document.querySelector(".status-container");
+
+  if (redeemButton) redeemButton.disabled = true;
+
+  // Check connection state via sessionStorage (matches wrap.js)
+  const isWalletConnected =
+    sessionStorage.getItem("walletConnected") === "true";
+
+  if (!window.ethereum || !isWalletConnected) {
     showCustomMessage("Please connect your wallet first.", "error");
     if (redeemButton) redeemButton.disabled = false;
     return;
@@ -106,144 +119,103 @@ document.getElementById("redeem-button").addEventListener("click", async () => {
     document.getElementById("redeem-collateral").value
   );
 
-  if (!stbAmount || !redeemAmount || stbAmount <= 0 || redeemAmount <= 0) {
+  if (
+    isNaN(stbAmount) ||
+    stbAmount <= 0 ||
+    isNaN(redeemAmount) ||
+    redeemAmount <= 0
+  ) {
     showCustomMessage("Please enter valid amounts greater than zero.", "error");
-    if (redeemButton) {
-      redeemButton.disabled = false; // Re-enable the button if input is invalid
-    }
+    if (redeemButton) redeemButton.disabled = false;
     return;
   }
 
-  // Convert input values to Wei
-  const stbAmountInWei = ethers.utils.parseUnits(stbAmount.toString(), 18);
+  const stbAmountInWei = ethers.utils.parseUnits(stbAmount.toString(), "ether");
   const redeemAmountInWei = ethers.utils.parseUnits(
     redeemAmount.toString(),
-    18
+    "ether"
   );
 
-  statusMessage.style.display = "block";
-  statusMessage.innerText = "Processing redemption... Please wait.";
-
   try {
+    resetStatusBar();
+    if (statusContainer) statusContainer.style.display = "flex";
+    if (statusMessage) {
+      statusMessage.style.display = "block";
+      statusMessage.innerText = "Approving STB for redemption...";
+    }
+
+    await incrementStatusBar(25, 2000);
+
     const provider = new ethers.providers.Web3Provider(window.ethereum);
     const signer = provider.getSigner();
     const userAddress = await signer.getAddress();
 
-    // Initialize contracts
-    initializeContracts(signer);
-
-    // Step 1: Check allowance
+    // Check allowance and approve if needed
     const currentAllowance = await stbContract.allowance(
       userAddress,
       stbeContractAddress
     );
     if (currentAllowance.lt(stbAmountInWei)) {
-      console.log("Approving STB for redemption...");
-      statusMessage.innerText = "Approving STB for redemption...";
-
-      // Increment status bar to 25% over 2 seconds
-      await incrementStatusBar(25, 2000);
-
-      const approveTx = await stbContract.approve(
-        stbeContractAddress,
-        stbAmountInWei
-      );
-      console.log("Approve transaction sent:", approveTx.hash);
+      const approveTx = await stbContract
+        .connect(signer)
+        .approve(stbeContractAddress, stbAmountInWei);
       await approveTx.wait();
-
-      statusMessage.innerText = "STB approved successfully.";
-    } else {
-      console.log("Sufficient allowance exists. Skipping approval step.");
     }
 
-    // Step 2: Redeem collateral
-    console.log("Calling redeemCollateralForStb...");
-    statusMessage.innerText = "Redeeming collateral...";
-
-    // Increment status bar to 50% over 2 seconds
+    if (statusMessage) statusMessage.innerText = "Redeeming collateral...";
     await incrementStatusBar(50, 2000);
 
-    const redeemTx = await stbeContract.redeemCollateralForStb(
-      wethContractAddress, // WETH token collateral address
-      redeemAmountInWei,
-      stbAmountInWei
-    );
-    console.log("Redeem transaction sent:", redeemTx.hash);
+    // Redeem collateral
+    const redeemTx = await stbeContract
+      .connect(signer)
+      .redeemCollateralForStb(
+        wethContractAddress,
+        redeemAmountInWei,
+        stbAmountInWei
+      );
     await redeemTx.wait();
-
-    // Increment status bar to 100% over 2 seconds
     await incrementStatusBar(100, 2000);
 
-    // Step 3: Success feedback
-    statusMessage.innerText = `Successfully redeemed ${redeemAmount} WETH for ${stbAmount} STB.`;
-    await new Promise((resolve) => setTimeout(resolve, 4000)); // Show for 4s
+    if (statusMessage) {
+      statusMessage.innerText = `Successfully redeemed ${redeemAmount} WETH for ${stbAmount} STB.`;
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
-    // Smooth transition to next message
-    statusMessage.style.opacity = "0";
-    await new Promise((resolve) => setTimeout(resolve, 800)); // 0.8s fade
+      statusMessage.style.opacity = "0";
+      await new Promise((resolve) => setTimeout(resolve, 800));
 
-    statusMessage.innerText =
-      "Please go to Transfer ETH to Wallet for the next step.";
-    statusMessage.style.opacity = "1";
-    await new Promise((resolve) => setTimeout(resolve, 8000)); // Show for 8s
+      statusMessage.innerText =
+        "Please go to Transfer ETH to Wallet for the next step.";
+      statusMessage.style.opacity = "1";
+      await new Promise((resolve) => setTimeout(resolve, 8000));
 
-    // Clean up
-    statusMessage.innerText = "";
-    statusMessage.style.display = "none";
-    resetStatusBar();
-
-    // Reset input fields to 0.0
-    document.getElementById("burn-stb").value = "0.0";
-    document.getElementById("redeem-collateral").value = "0.0";
-
-    // Update balances
-    await updateBalances(provider, userAddress);
-  } catch (error) {
-    // Error feedback
-    console.error("Error during redemption process:", error);
-    const errorMessage =
-      error.reason ||
-      error.data?.message ||
-      error.message ||
-      "Unknown error occurred";
-    statusMessage.innerText = "Transaction failed";
-    showCustomMessage("Transaction rejected by user.", "error");
-
-    // Reset input fields to 0.0 on error
-    document.getElementById("burn-stb").value = "0.0";
-    document.getElementById("redeem-collateral").value = "0.0";
-
-    // Reset the status bar immediately on error
-    resetStatusBar();
-  } finally {
-    // Reset button state
-    const redeemButton = document.getElementById("redeem-button");
-    if (redeemButton) {
-      redeemButton.disabled = false;
+      statusMessage.innerText = "";
+      statusMessage.style.display = "none";
     }
 
-    // Clear the status message after a delay
+    resetStatusBar();
+    document.getElementById("burn-stb").value = "0.0";
+    document.getElementById("redeem-collateral").value = "0.0";
+    await updateBalances(provider, userAddress);
+  } catch (error) {
+    console.error("Error during redemption:", error);
+    if (statusMessage) {
+      statusMessage.innerText = error.message.includes(
+        "user rejected transaction"
+      )
+        ? "Transaction rejected"
+        : "Transaction failed";
+    }
+    resetStatusBar();
+    document.getElementById("burn-stb").value = "0.0";
+    document.getElementById("redeem-collateral").value = "0.0";
+  } finally {
+    if (redeemButton) redeemButton.disabled = false;
     setTimeout(() => {
-      const statusMessage = document.getElementById("statusMessage");
+      if (statusContainer) statusContainer.style.display = "none";
       if (statusMessage) {
         statusMessage.style.display = "none";
         statusMessage.innerText = "";
       }
-    }, 5000); // Clear after 5 seconds
+    }, 5000);
   }
-});
-
-// Utility to enable or disable the Redeem button based on inputs
-function toggleRedeemButton() {
-  const burnAmount = parseFloat(document.getElementById("burn-stb").value);
-  const redeemAmount = parseFloat(
-    document.getElementById("redeem-collateral").value
-  );
-  const redeemButton = document.getElementById("redeem-button");
-
-  redeemButton.disabled =
-    isNaN(burnAmount) ||
-    burnAmount <= 0 ||
-    isNaN(redeemAmount) ||
-    redeemAmount <= 0;
 }
