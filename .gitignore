@@ -1,1 +1,15 @@
-.vercel
+# Node.js
+node_modules/
+npm-debug.log*
+
+# Foundry
+lib/
+out/
+cache/
+
+# Environment and OS files
+.env
+.DS_Store
+
+# Vercel
+.vercel/

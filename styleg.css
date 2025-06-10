@@ -1,10 +1,61 @@
+:root {
+  --scale-factor: 1;
+
+  /* Typography */
+  --font-large: calc(2rem * var(--scale-factor));
+  --font-medium: calc(1.5rem * var(--scale-factor));
+  --font-small: calc(1.1rem * var(--scale-factor));
+
+  /* Layout and spacing */
+  --max-content-width: calc(67.5rem * var(--scale-factor));
+  --responsive-padding: clamp(
+    calc(1rem * var(--scale-factor)), 
+    calc(5vw * var(--scale-factor)), 
+    calc(2rem * var(--scale-factor))
+  );
+  --responsive-gap: clamp(
+    calc(0.5rem * var(--scale-factor)), 
+    calc(2vw * var(--scale-factor)), 
+    calc(1rem * var(--scale-factor))
+  );
+  --responsive-margin: clamp(
+    calc(1rem * var(--scale-factor)), 
+    calc(2vw * var(--scale-factor)), 
+    calc(1.5rem * var(--scale-factor))
+  );
+
+  /* Colors */
+  --text-inactive: #747b8d;
+  --text-active: #FFFFFF;
+  --nav-inactive: #8890a3;
+  --gradient-primary: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF);
+
+  /* Dimensions and scaling */
+  --real-vh: 1vh;
+  --base-width: 1366px;
+  --scaled-1x: var(--font-large);
+  --scaled-2x: calc(3rem * var(--scale-factor));
+  --padding-default: calc(2rem * var(--scale-factor));
+  --margin-top-default: calc(1.8rem * var(--scale-factor));
+  --border-radius: calc(1.25rem * var(--scale-factor));
+}
+
+@media (min-width: 1910px) {
+  :root {
+    --scale-factor: 0.85; /* Scaled down version */
+    --forced-scale: 0.85; /* New variable for elements that resist scaling */
+  }
+}
+
 .scalable-container {
   width: 100%;
-  height: 100vh; 
   overflow: hidden; 
   display: flex;
   flex-direction: column;
-}
+
+  height: 100vh; 
+
+  }
 
 html {
   font-size: clamp(14px, calc(16px * var(--scale-factor)), 24px);
@@ -14,10 +65,11 @@ html {
 
 }
 html, body {
-  box-sizing: border-box;
+  /* box-sizing: border-box; */
   margin: 0;
   padding: 0;
   width: 100%;
+  height: 100%;
 }
 
 *, *:before, *:after {
@@ -25,16 +77,16 @@ html, body {
 }
 
 body {
-  height: calc(100vh / var(--scale-factor));
+  /* height: calc(100vh / var(--scale-factor)); */
   transform-origin: top left;
   overflow: hidden;
   padding-right: 1rem;
   background: #191D26;
   font-family: 'Open Sans', sans-serif;
   line-height: 1.5;
-  transform: translateZ(0); /* Hardware acceleration */
+  /* transform: translateZ(0); Hardware acceleration */
   backface-visibility: hidden;
-  perspective: 1000px;
+  /* perspective: 1000px; */
 }
 
 .start-container {
@@ -62,9 +114,17 @@ body {
 .landing-content {
   display: flex;
   flex-direction: row;
-  height: calc(100vh - var(--padding-default));
+  /* height: calc(100vh - var(--padding-default)); */
   padding: 0 var(--padding-default);
   gap: var(--padding-default);
+
+  flex: 1;
+  min-height: 0;
+  height: 100%; /* or 100vh if needed */
+  overflow: hidden;
+
+  /* padding-bottom: 1.5vh; */
+  gap: 1vh;
 }
 
 .landing-left,
@@ -72,18 +132,30 @@ body {
   flex: 1;
   display: flex;
   padding: var(--padding-default);
+
 }
 
 .landing-left {
   flex-direction: column;
-  justify-content: center;
   max-width: calc(50rem * var(--scale-factor));
+  justify-content: space-between;
+
+  display: flex;
+  
+  flex: 1;
+  padding: var(--padding-default);
+  overflow: hidden;
+
 }
 
 .landing-right {
-  align-items: center;
+  display: flex;
+  flex-direction: column;
   justify-content: center;
-}
+  align-items: center;
+  flex: 1;
+  padding: var(--padding-default);
+  overflow: hidden;}
 
 .welcome-to {
   color: #D1D5DB;
@@ -234,7 +306,11 @@ body {
     "left balances";
   grid-template-columns: auto 1fr;
   grid-template-rows: minmax(0, 70vh) auto;
-  height: calc(100vh - calc(4rem * var(--scale-factor)));
+  /* height: calc(100vh - calc(4rem * var(--scale-factor))); */
+  
+  height: auto;
+  min-height: 100vh;
+  
   gap: calc(0.5rem * var(--scale-factor));
   padding-bottom: calc(0.5rem * var(--scale-factor));
   overflow: hidden;
@@ -711,17 +787,12 @@ body.connected .balance-box.collateral-balance {
   color: #191D26;
 }
 
-/* Enhanced active state transitions */
 .balance-box {
   transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
-/* Responsive value formatting */
-@media (min-width: 1920px) {
-  .balance-value {
-    font-size: calc(1.2rem * var(--scale-factor));
-  }
-}
+
+
 
 .form-controls {
   display: grid;
@@ -782,12 +853,6 @@ body.connected .balance-box.collateral-balance {
 
 .form-input:focus {
   outline: calc(2px * var(--scale-factor));
-}
-
-@media (min-width: 1920px) {
-  .form-input, .action-button {
-    font-size: calc(1rem * var(--scale-factor));
-  }
 }
 
 .box-content {
@@ -937,15 +1002,6 @@ body.connected .balance-box.collateral-balance {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
   100% { background-position: 0% 50%; }
-}
-
-@media (min-width: 1920px) {
-  .status-message {
-    font-size: calc(0.9rem * var(--scale-factor));
-  }
-  .status-bar {
-    height: calc(0.3rem * var(--scale-factor));
-  }
 }
 
 .box-tooltip {
@@ -1173,15 +1229,6 @@ body.connected .left-box .action-link:hover {
   color: #00A9D7;
 }
 
-@media (min-width: 1920px) {
-  body.connected .left-box .action-link {
-    font-size: calc(1.05rem * var(--scale-factor));
-  }
-  body.connected .left-box .action-link.active {
-    font-size: calc(1.1rem * var(--scale-factor));
-  }
-}
-
 /* ============ BALANCE BOX STYLES ============ */
 .box.active-box {
   background: white;
@@ -1230,15 +1277,6 @@ button:focus {
 
 button {
   font-size: calc(1rem * var(--scale-factor));
-}
-
-@media (min-width: 1920px) {
-  .box {
-    padding: calc(1.5rem * var(--scale-factor));
-  }
-  .box.collateral-box.active-box .balance-value {
-    font-size: calc(1.2rem * var(--scale-factor));
-  }
 }
 
 @media (max-width: 768px) {
@@ -1355,21 +1393,11 @@ button {
 }
 
 /* ============ HIGH-RESOLUTION ENHANCEMENTS ============ */
-@media (min-width: 1920px) {
-  .middle-box-content { padding: calc(3rem * var(--scale-factor)); }
-  .balance-value { font-size: calc(1.3rem * var(--scale-factor)); }
-  .left-box { width: clamp(14rem, 18vw, 20rem); } /* Example: Wider nav */
-}
+
 
 @media (min-width: 2560px) {
   .instruction-text { font-size: calc(1.15rem * var(--scale-factor)); }
   .balances-container { gap: 1.5rem; } /* More spacing */
-}
-
-@media (min-width: 1920px) {
-  .page-container {
-    grid-template-rows: minmax(0, 75vh) auto; /* Slightly more space on 1080p */
-  }
 }
 
 @media (min-width: 2560px) {
@@ -1381,48 +1409,6 @@ button {
 /*                           */
  /* following code is good */
 /*                          */
-
-:root {
-  --scale-factor: 1;
-
-  /* Typography */
-  --font-large: calc(2rem * var(--scale-factor));
-  --font-medium: calc(1.5rem * var(--scale-factor));
-  --font-small: calc(1.1rem * var(--scale-factor));
-
-  /* Layout and spacing */
-  --max-content-width: calc(67.5rem * var(--scale-factor));
-  --responsive-padding: clamp(
-    calc(1rem * var(--scale-factor)), 
-    calc(5vw * var(--scale-factor)), 
-    calc(2rem * var(--scale-factor))
-  );
-  --responsive-gap: clamp(
-    calc(0.5rem * var(--scale-factor)), 
-    calc(2vw * var(--scale-factor)), 
-    calc(1rem * var(--scale-factor))
-  );
-  --responsive-margin: clamp(
-    calc(1rem * var(--scale-factor)), 
-    calc(2vw * var(--scale-factor)), 
-    calc(1.5rem * var(--scale-factor))
-  );
-
-  /* Colors */
-  --text-inactive: #747b8d;
-  --text-active: #FFFFFF;
-  --nav-inactive: #8890a3;
-  --gradient-primary: linear-gradient(90deg, #0071BC, #00A9D7, #00D8ED, #00F4FA, #00FFFF);
-
-  /* Dimensions and scaling */
-  --real-vh: 1vh;
-  --base-width: 1366px;
-  --scaled-1x: var(--font-large);
-  --scaled-2x: calc(3rem * var(--scale-factor));
-  --padding-default: calc(2rem * var(--scale-factor));
-  --margin-top-default: calc(1.8rem * var(--scale-factor));
-  --border-radius: calc(1.25rem * var(--scale-factor));
-}
 
 /* ≥ 1440px: Medium-large screens */
 @media (min-width: 1440px) {
@@ -1448,8 +1434,8 @@ button {
 /* ≥ 1900px and ≥ 1000px height: Full HD or similar large screens */
 @media (min-width: 1900px) and (min-height: 1000px) {
   :root {
-    font-size: calc(16px * 1.1); /* Optional if already set above */
-  }
+    font-size: calc(16px * 1.1);
+   }
 
   .image-content {
     min-height: min(50vh, calc(500px * var(--scale-factor)));
@@ -1467,25 +1453,6 @@ button {
 }
 
 /* ≥ 1920px: Extra large screens */
-@media (min-width: 1920px) {
-  :root {
-    --scale-factor: 1.25;
-  }
-
-  .page-container {
-    grid-template-rows: 80% 15%;
-  }
-
-  .image-content {
-    min-height: min(65vh, 700px);
-    padding-top: calc(7rem * var(--scale-factor));
-  }
-
-  .balances-container {
-    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-    padding-top: calc(0.9rem * var(--scale-factor));
-  }
-}
 
 /* === MOBILE STYLES (≤ 768px) === */
 @media (max-width: 768px) {
@@ -1519,3 +1486,32 @@ button {
     padding: var(--responsive-padding);
   }
 }
+
+@media (min-width: 1440px) and (max-width: 1909px) {
+  :root {
+    --scale-factor: 1.15;
+  }
+  /* Optional: Slightly smaller paddings/fonts */
+}
+
+@media (min-width: 1366px) and (max-width: 1439px) {
+  :root {
+    --scale-factor: 1.05;
+  }
+}
+
+@media (min-width: 1280px) and (max-width: 1365px) {
+  :root {
+    --scale-factor: 1;
+  }
+}
+
+
+
+@media (min-width: 1025px) and (max-width: 1279px) {
+  :root {
+    --scale-factor: 0.95;
+  }
+}
+
+
