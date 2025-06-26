@@ -12,7 +12,7 @@ const helperConfigContractAddress =
 // WETH Contract Address (Sepolia Testnet)
 const wethContractAddress = "0xdd13E55209Fd76AfE204dBda4007C227904f0a81"; // WETH contract address on Sepolia
 
-// ABIs (replace these with your actual ABIs)
+// ABIs
 
 const erc20Abi = [
   {
@@ -855,7 +855,7 @@ function resetUI() {
   const inputFields = document.querySelectorAll(".form-input");
   inputFields.forEach((input) => {
     input.value = "0";
-      });
+  });
 
   walletConnected = false;
   console.log("UI reset successfully.");

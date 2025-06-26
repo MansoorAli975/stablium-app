@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stablium - Connect</title>
   <link rel="icon" type="image/png" href="/favicon.png?ver=2">
-  <link rel="stylesheet" href="/styleg.css">
+  <link rel="stylesheet" href="/styleh.css">
   <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
@@ -43,24 +44,30 @@
       </div>
 
       <div class="middle-box">
-        <div class="middle-box-content">
-          <div class="box-title-container">
-            <h2 class="box-title">Connect your wallet</h2>
-            <div class="box-tooltip">
-              <button class="tooltip-icon">?</button>
-              <div class="tooltip-content">
-                Download and install <a href="https://metamask.io/download/" target="_blank" class="tooltip-link">Metamask</a> here to proceed
+        <div class="middle-box-inner">
+          <div class="middle-box-content">
+            <div class="box-title-container">
+              <h2 class="box-title">Connect your wallet</h2>
+              <div class="box-tooltip">
+                <button class="tooltip-icon">?</button>
+                <div class="tooltip-content">
+                  Download and install <a href="https://metamask.io/download/" target="_blank"
+                    class="tooltip-link">Metamask</a> here to proceed
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div class="box-content">
-            <div class="instruction-text">
-              <p>Connect your wallet to start using Stablium. You'll need</p>
-              <p>a Web3-enabled wallet such as MetaMask</p>
+
+            <div class="box-content">
+              <p class="instruction-text">
+                Connect your wallet to start using Stablium.<br />
+                <br>
+                You'll need a Web3-enabled wallet such as MetaMask.
+              </p>
+
+              <form class="form-controls">
+                <button id="walletAddress" class="action-button">Connect Wallet</button>
+              </form>
             </div>
-            <button id="walletAddress" class="action-button">Connect Wallet</button>
-            <!-- <button id="connectWalletBtn" class="action-button">Connect Wallet</button> -->
           </div>
         </div>
       </div>
@@ -95,14 +102,13 @@
   </div>
 
   <script>
-    // Enhanced viewport detection
     function checkViewport() {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--real-vh', `${vh}px`);
       document.body.style.height = `${window.innerHeight}px`;
-      
+
       document.body.classList.remove('small-desktop', 'mobile-device');
-      
+
       if (window.innerWidth <= 1366) {
         document.body.classList.add('small-desktop');
       }
@@ -119,19 +125,21 @@
     }
 
     document.documentElement.style.visibility = 'hidden';
-  checkViewport();
-  calculateScale();
-  window.addEventListener('resize', function() {
-    requestAnimationFrame(function() {
-      document.documentElement.style.visibility = 'hidden';
-      checkViewport();
-      calculateScale();
-      document.documentElement.style.visibility = 'visible';
+    checkViewport();
+    calculateScale();
+    window.addEventListener('resize', function () {
+      requestAnimationFrame(function () {
+        document.documentElement.style.visibility = 'hidden';
+        checkViewport();
+        calculateScale();
+        document.documentElement.style.visibility = 'visible';
+      });
     });
-  });
-  document.documentElement.style.visibility = 'visible';
+    document.documentElement.style.visibility = 'visible';
   </script>
 
   <script src="/index.js"></script>
+  <script src="scale.js"></script>
 </body>
+
 </html>

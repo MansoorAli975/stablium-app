@@ -11,9 +11,9 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * Minting:             Algorithmic
  * Relative Stability:  Pegged to USD
  *
- * This is the contract meant to be governed by STBEngine. 
+ * This is the contract meant to be governed by STBEngine.
  * This contract is just ERC20 implementation of our stablecoin system.
-*/
+ */
 
 contract Stablium is ERC20Burnable, Ownable {
     error Stablium__MustBeMoreThanZero();
@@ -22,6 +22,7 @@ contract Stablium is ERC20Burnable, Ownable {
 
     constructor() ERC20("Stablium", "STB") {}
 
+    // Indirect user burn path via STBEngine. OnlyOwner burn not used for normal users.
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);
         if (_amount <= 0) {
@@ -33,7 +34,10 @@ contract Stablium is ERC20Burnable, Ownable {
         super.burn(_amount);
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
+    function mint(
+        address _to,
+        uint256 _amount
+    ) external onlyOwner returns (bool) {
         if (_to == address(0)) {
             revert Stablium__NotZeroAddress();
         }

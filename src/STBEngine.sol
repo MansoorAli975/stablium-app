@@ -37,9 +37,11 @@ import {OracleLib} from "./libraries/OracleLib.sol";
  * - Exogenous collateral
  * - Dollar Pegged
  * It is similar to DAI if DAI had no governance, no fees and was only backed by WETH and WBTC.
- * Our STB system should always be "overcollateralized". At no point should the value of all collateral <= the $ backed value of all the STB.
+ * Our STB system should always be "overcollateralized". At no point should the value of all collateral <= 
+ * the $ backed value of all the STB.
 
-    @notice This contract is the core of DCS system. It handles all the logic for mining and redeeming STB, as well as depositing & withdrawing collateral.
+    @notice This contract is the core of STB system. It handles all the logic for mining and redeeming STB,
+     as well as depositing & withdrawing collateral.
      @notice This contract is very loosely based on the MarkerDAO DSS (DAI) system
     
     (note to self: other one is RAI) 
@@ -70,7 +72,8 @@ contract STBEngine is ReentrancyGuard {
 
     //mapping (address => bool) private s_tokenToAllowed; not this time cuz gonna need pricefeed anyway
     mapping(address token => address priceFeed) private s_priceFeeds;
-    mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
+    mapping(address user => mapping(address token => uint256 amount))
+        private s_collateralDeposited;
     mapping(address user => uint256 amountStbMinted) private s_STBMinted;
     address[] private s_collateralTokens;
     //address weth;
@@ -79,9 +82,16 @@ contract STBEngine is ReentrancyGuard {
     Stablium private immutable i_stb;
 
     //Events:
-    event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
+    event CollateralDeposited(
+        address indexed user,
+        address indexed token,
+        uint256 amount
+    );
     event CollateralRedeemed(
-        address indexed redeemedFrom, address indexed redeemedTo, address indexed token, uint256 amount
+        address indexed redeemedFrom,
+        address indexed redeemedTo,
+        address indexed token,
+        uint256 amount
     );
 
     // modifier moreThanZero(uint256 amount) {
@@ -108,7 +118,11 @@ contract STBEngine is ReentrancyGuard {
         _;
     }
 
-    constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address stbAddress) {
+    constructor(
+        address[] memory tokenAddresses,
+        address[] memory priceFeedAddresses,
+        address stbAddress
+    ) {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert STBEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
         }
@@ -127,7 +141,7 @@ contract STBEngine is ReentrancyGuard {
      *@param amountCollateral The amount of collateral to deposit
      *@param amountStbToMint The amount of decentralized stablecoin to mint
      *@notice This function will deposit your collateral and mint STB in one transaction
-    */
+     */
     function depositCollateralAndMintStb(
         address tokenCollateralAddress,
         uint256 amountCollateral,
@@ -137,30 +151,45 @@ contract STBEngine is ReentrancyGuard {
         mintStb(amountStbToMint);
     }
 
-    function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+    function depositCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateral
+    )
         public
         moreThanZero(amountCollateral)
         isAllowedToken(tokenCollateralAddress)
         nonReentrant
     {
-        s_collateralDeposited[msg.sender][tokenCollateralAddress] += amountCollateral;
+        s_collateralDeposited[msg.sender][
+            tokenCollateralAddress
+        ] += amountCollateral;
         //emit s_collateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral);
-        emit CollateralDeposited(msg.sender, tokenCollateralAddress, amountCollateral); // Corrected by gpt
-        bool success = IERC20(tokenCollateralAddress).transferFrom(msg.sender, address(this), amountCollateral);
+        emit CollateralDeposited(
+            msg.sender,
+            tokenCollateralAddress,
+            amountCollateral
+        ); // Corrected by gpt
+        bool success = IERC20(tokenCollateralAddress).transferFrom(
+            msg.sender,
+            address(this),
+            amountCollateral
+        );
         if (!success) {
             revert STBEngine__TransferFailed();
         }
     }
 
     /*
-    *@param tokenCollateralAddress The collateral address to redeem
-    *@param amountCollateral The amount of collateral to redeem
-    *@param amountStbToBurn The aount of STB to burn
-    *Thsi function burns STB and redeems underlying collateral in one transaction
+     *@param tokenCollateralAddress The collateral address to redeem
+     *@param amountCollateral The amount of collateral to redeem
+     *@param amountStbToBurn The aount of STB to burn
+     *Thsi function burns STB and redeems underlying collateral in one transaction
      */
-    function redeemCollateralForStb(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountStbToBurn)
-        external
-    {
+    function redeemCollateralForStb(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountStbToBurn
+    ) external {
         burnStb(amountStbToBurn);
         redeemCollateral(tokenCollateralAddress, amountCollateral);
         //redeemCollateral already checks health factor
@@ -168,12 +197,16 @@ contract STBEngine is ReentrancyGuard {
 
     // in order to redeem collateral:
     //1. health factor must be over one AFTER collateral is pulled
-    function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
-        public
-        moreThanZero(amountCollateral)
-        nonReentrant
-    {
-        _redeemCollateral(msg.sender, msg.sender, tokenCollateralAddress, amountCollateral);
+    function redeemCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateral
+    ) public moreThanZero(amountCollateral) nonReentrant {
+        _redeemCollateral(
+            msg.sender,
+            msg.sender,
+            tokenCollateralAddress,
+            amountCollateral
+        );
         ///note to self try change order
 
         //_redeemCollateral(tokenCollateralAddress, amountCollateral, msg.sender, msg.sender);
@@ -181,7 +214,9 @@ contract STBEngine is ReentrancyGuard {
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function mintStb(uint256 amountStbToMint) public moreThanZero(amountStbToMint) nonReentrant {
+    function mintStb(
+        uint256 amountStbToMint
+    ) public moreThanZero(amountStbToMint) nonReentrant {
         s_STBMinted[msg.sender] += amountStbToMint;
         //if they minted too much eg $150 STB vs $100 ETH
         _revertIfHealthFactorIsBroken(msg.sender);
@@ -206,31 +241,47 @@ contract STBEngine is ReentrancyGuard {
      *@param collateral: The erc20 collateral address to loquidate from the user
      *@param user: The user who has broken the health factor. Their _healthFactor
      *              should be below MIN_HEALTH_FACTOR
-     *@param debtToCover: The amount of STB we want to burn to improve users' 
+     *@param debtToCover: The amount of STB we want to burn to improve users'
      *              health factor
      *@notice You can partially liquidate a user
      *@notice You will get a liquidation bonus for taking the users' funds
      *@notice This function working assumes the protocol will be roughly
      *          200% over collateralized in order for this to work
-     *@notice A known bug would be if the protocol were 100% or less collateralized,   
+     *@notice A known bug would be if the protocol were 100% or less collateralized,
      *         then we wouldn't be able to incentivize the liquidators
-     *For exapmle, if the price of collateral plummeted before anyone could be 
+     *For exapmle, if the price of collateral plummeted before anyone could be
      * liquidated.
      */
-    function liquidate(address collateral, address user, uint256 debtToCover)
-        external
-        moreThanZero(debtToCover)
-        nonReentrant
-    {
+    function liquidate(
+        address collateral,
+        address user,
+        uint256 debtToCover
+    ) external moreThanZero(debtToCover) nonReentrant {
         uint256 startingUserHealthFactor = _healthFactor(user);
         if (startingUserHealthFactor >= MIN_HEALTH_FACTOR) {
             revert STBEngine__HealthFactorOk();
         }
-        uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(collateral, debtToCover);
-
-        uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
-        uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
-        _redeemCollateral(user, msg.sender, collateral, totalCollateralToRedeem);
+        // Burn their STB 'debt'
+        // take their collatoral
+        // Example: Bad User: $140 ETH, $100 STB
+        // debtToCover = $100
+        // $100 of STB == ??? ETH?
+        uint256 tokenAmountFromDebtCovered = getTokenAmountFromUsd(
+            collateral,
+            debtToCover
+        );
+        // We give them a 10% bonus
+        // So we are giving the liquifator $110 of WETH for 100 DSC
+        uint256 bonusCollateral = (tokenAmountFromDebtCovered *
+            LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
+        uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered +
+            bonusCollateral;
+        _redeemCollateral(
+            user,
+            msg.sender,
+            collateral,
+            totalCollateralToRedeem
+        );
         _burnSTB(debtToCover, user, msg.sender);
 
         uint256 endingUserHealthFactor = _healthFactor(user);
@@ -248,9 +299,17 @@ contract STBEngine is ReentrancyGuard {
      *@dev Low-level internal function, do not call unless the function calling it is
      * checking for health factor being broken
      */
-    function _burnSTB(uint256 amountStbToBurn, address onBehalfOf, address stbFrom) private {
+    function _burnSTB(
+        uint256 amountStbToBurn,
+        address onBehalfOf,
+        address stbFrom
+    ) private {
         s_STBMinted[onBehalfOf] -= amountStbToBurn;
-        bool success = i_stb.transferFrom(stbFrom, address(this), amountStbToBurn);
+        bool success = i_stb.transferFrom(
+            stbFrom,
+            address(this),
+            amountStbToBurn
+        );
 
         if (!success) {
             revert STBEngine__TransferFailed();
@@ -258,19 +317,32 @@ contract STBEngine is ReentrancyGuard {
         i_stb.burn(amountStbToBurn);
     }
 
-    function _redeemCollateral(address from, address to, address tokenCollateralAddress, uint256 amountCollateral)
-        private
-    {
+    function _redeemCollateral(
+        address from,
+        address to,
+        address tokenCollateralAddress,
+        uint256 amountCollateral
+    ) private {
         s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
-        emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
-        bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
+        emit CollateralRedeemed(
+            from,
+            to,
+            tokenCollateralAddress,
+            amountCollateral
+        );
+        bool success = IERC20(tokenCollateralAddress).transfer(
+            to,
+            amountCollateral
+        );
         if (!success) {
             revert STBEngine__TransferFailed();
         }
         _revertIfHealthFactorIsBroken(msg.sender);
     }
 
-    function _getAccountInformation(address user)
+    function _getAccountInformation(
+        address user
+    )
         private
         view
         returns (uint256 totalStbMinted, uint256 collateralValueInUsd)
@@ -283,7 +355,10 @@ contract STBEngine is ReentrancyGuard {
     // if a user goes below 1, they can be liquidated
     function _healthFactor(address user) private view returns (uint256) {
         //total STB minted & total collateral value
-        (uint256 totalStbMinted, uint256 collateralValueInUsd) = _getAccountInformation(user);
+        (
+            uint256 totalStbMinted,
+            uint256 collateralValueInUsd
+        ) = _getAccountInformation(user);
 
         return _calculateHealthFactor(totalStbMinted, collateralValueInUsd);
 
@@ -307,15 +382,25 @@ contract STBEngine is ReentrancyGuard {
             revert STBEngine__BreaksHealthFactor(userHealthFactor);
         }
     }
+
     //Public and External view functions:
 
-    function getTokenAmountFromUsd(address token, uint256 usdAmountInWei) public view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
-        return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
+    function getTokenAmountFromUsd(
+        address token,
+        uint256 usdAmountInWei
+    ) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            s_priceFeeds[token]
+        );
+        (, int256 price, , , ) = priceFeed.staleCheckLatestRoundData();
+        return
+            (usdAmountInWei * PRECISION) /
+            (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
-    function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValueInUse) {
+    function getAccountCollateralValue(
+        address user
+    ) public view returns (uint256 totalCollateralValueInUse) {
         /*
          * Loop through each collateral token, get the amount they have deposited and
          *  map it to the price to get the USD value
@@ -328,42 +413,50 @@ contract STBEngine is ReentrancyGuard {
         return totalCollateralValueInUse;
     }
 
-    function getUsdValue(address token, uint256 amount) public view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
+    function getUsdValue(
+        address token,
+        uint256 amount
+    ) public view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            s_priceFeeds[token]
+        );
+        (, int256 price, , , ) = priceFeed.staleCheckLatestRoundData();
         // if 1 ETH = $1000
         // the returned value from ChainLink will be 1000 * 1e8 (8 decimals)
         // return` price * amount ? no
-        return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
+        return
+            ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-    function _calculateHealthFactor(uint256 totalStbMinted, uint256 collateralValueInUsd)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _calculateHealthFactor(
+        uint256 totalStbMinted,
+        uint256 collateralValueInUsd
+    ) internal pure returns (uint256) {
         if (totalStbMinted == 0) return type(uint256).max;
-        uint256 collateralAdjustedForThreshold = (collateralValueInUsd * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+        uint256 collateralAdjustedForThreshold = (collateralValueInUsd *
+            LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
         return (collateralAdjustedForThreshold * 1e18) / totalStbMinted;
     }
 
     //MORE EXTERNAL VIEW FUNCTIONS FOR BETTER VISIBILITY//
 
-    function calculateHealthFactor(uint256 totalStbMinted, uint256 collateralValueInUsd)
-        external
-        pure
-        returns (uint256)
-    {
+    function calculateHealthFactor(
+        uint256 totalStbMinted,
+        uint256 collateralValueInUsd
+    ) external pure returns (uint256) {
         return _calculateHealthFactor(totalStbMinted, collateralValueInUsd);
     }
 
-    function getAccountInformation(address user)
+    function getAccountInformation(
+        address user
+    )
         external
         view
         returns (uint256 totalStbMinted, uint256 collateralValueInUsd)
     {
         return _getAccountInformation(user);
     }
+
     ////
     //THIS WAS THE ORIGINAL FUNCTION, CHANGE TWICE BELOW BY CHATGPT///
     ///
@@ -382,7 +475,10 @@ contract STBEngine is ReentrancyGuard {
     //     return s_collateralDeposited[user][token];
     // }
 
-    function getCollateralBalanceOfUser(address user, address token) external view returns (uint256) {
+    function getCollateralBalanceOfUser(
+        address user,
+        address token
+    ) external view returns (uint256) {
         // Check if the user address is the zero address
         if (user == address(0)) revert STBEngine__NotAllowedZeroAddress();
 
@@ -433,7 +529,9 @@ contract STBEngine is ReentrancyGuard {
         return address(i_stb);
     }
 
-    function getCollateralTokenPriceFeed(address token) external view returns (address) {
+    function getCollateralTokenPriceFeed(
+        address token
+    ) external view returns (address) {
         return s_priceFeeds[token];
     }
 
