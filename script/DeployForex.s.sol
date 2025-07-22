@@ -57,6 +57,21 @@ contract DeployForex is Script {
             network.priceFeedsSynthetic
         );
 
+        // Set synthetic price feeds with readable keys
+        deployment.engine.setSyntheticPriceFeed(
+            "EUR",
+            network.priceFeedsSynthetic[1]
+        );
+        deployment.engine.setSyntheticPriceFeed(
+            "GBP",
+            network.priceFeedsSynthetic[2]
+        );
+        deployment.engine.setSyntheticPriceFeed(
+            "JPY",
+            network.priceFeedsSynthetic[3]
+        );
+        //deployment.engine.setSyntheticPriceFeed("USD", address(0)); // optional: can be base symbol
+
         // Set protocol reserve wallet
         deployment.engine.setProtocolReserveWallet(
             0xa25033FC4f01Fa8006910E42B5a1b3e9db85240b
@@ -73,7 +88,7 @@ contract DeployForex is Script {
         return deployment;
     }
 
-    // 🧪 For test-specific mock override
+    //For test-specific mock override
     function runWithMocks(
         address weth,
         address wethFeed,

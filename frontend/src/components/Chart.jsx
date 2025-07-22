@@ -97,17 +97,17 @@ const Chart = ({ selectedSymbol, forexPrice }) => {
         return () => clearInterval(refreshInterval.current);
     }, [selectedSymbol]);
 
-    // Draw or update live price line
+    // Draw or update live price line from on-chain price
     useEffect(() => {
         if (!forexPrice || !candleSeriesRef.current) return;
-        const price = forexPrice?.price ?? forexPrice?.p;
-        if (!price || isNaN(price)) return;
+        const livePrice = forexPrice?.price ?? forexPrice?.p;
+        if (!livePrice || isNaN(livePrice)) return;
 
         if (priceLineRef.current) {
-            priceLineRef.current.applyOptions({ price });
+            priceLineRef.current.applyOptions({ price: livePrice });
         } else {
             priceLineRef.current = candleSeriesRef.current.createPriceLine({
-                price,
+                price: livePrice,
                 color: "#FFD700",
                 lineWidth: 2,
                 lineStyle: LightweightCharts.LineStyle.Dashed,
@@ -115,7 +115,7 @@ const Chart = ({ selectedSymbol, forexPrice }) => {
                 title: "Live",
             });
         }
-    }, [forexPrice?.price, forexPrice?.p]);
+    }, [forexPrice?.price]);
 
     return (
         <div className="chart-wrapper">

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { contract } from "../utils/contract";
+import { ethers } from "ethers";
+import { getForexEngineContract } from "../utils/contract";
 
 const TradePanel = ({
     forexPrice,
@@ -26,12 +27,19 @@ const TradePanel = ({
         const price = parseFloat(isLong ? forexPrice?.ask : forexPrice?.bid);
         if (!price) return alert("Price unavailable");
 
-        const marginAmount = amount;
+        const marginAmount = ethers.parseUnits(tradeAmount.toString(), 18);
         const leverage = selectedLeverage;
-        const takeProfit = parseFloat(tp) || 0;
-        const stopLoss = parseFloat(sl) || 0;
+        const takeProfit = tp ? ethers.parseUnits(tp.toString(), 18) : 0;
+        const stopLoss = sl ? ethers.parseUnits(sl.toString(), 18) : 0;
 
         try {
+            // Ensure wallet connection
+            await window.ethereum.request({ method: "eth_requestAccounts" });
+
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const contract = getForexEngineContract(signer);
+
             const tx = await contract.openPosition(
                 selectedSymbol,
                 isLong,
@@ -40,14 +48,16 @@ const TradePanel = ({
                 takeProfit,
                 stopLoss
             );
+
+            console.log("📤 TX sent:", tx.hash);
             await tx.wait();
-            alert("Trade submitted!");
+            alert("✅ Trade submitted!");
 
             setTradeAmount("");
             setTp("");
             setSl("");
         } catch (err) {
-            console.error("Trade failed:", err);
+            console.error("❌ Trade failed:", err);
             alert("Trade failed. Check console for details.");
         }
     };

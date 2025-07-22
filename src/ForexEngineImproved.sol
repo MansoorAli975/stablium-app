@@ -18,7 +18,7 @@ import {TokenConfig} from "./TokenConfig.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-contract ForexEngine is ReentrancyGuard, Ownable {
+contract ForexEngineImproved is ReentrancyGuard, Ownable {
     using SafeMath for uint256;
     using Address for address;
 

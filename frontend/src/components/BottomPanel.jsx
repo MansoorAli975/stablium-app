@@ -1,7 +1,7 @@
 import { useState } from "react";
 import "../styles.css";
 
-const BottomPanel = () => {
+const BottomPanel = ({ tradeHistory = [] }) => {
     const [activeTab, setActiveTab] = useState("trades");
 
     const renderProfitCell = (profitStr) => {
@@ -49,65 +49,29 @@ const BottomPanel = () => {
                     </div>
                 </div>
 
-                {activeTab === "trades" ? (
-                    <div className="trades-list">
-                        <div className="trade-entry">
-                            <div>00004</div>
-                            <div>16:45</div>
-                            <div>EUR/USD</div>
-                            <div className="trade-type buy">Buy</div>
-                            <div>100</div>
-                            <div>1.0967</div>
-                            <div>1.1100</div>
-                            <div>1.0880</div>
-                            <div>5x</div>
-                            <div>+0.52%</div>
-                            {renderProfitCell("+24.00")}
-                        </div>
-                        <div className="trade-entry">
-                            <div>00003</div>
-                            <div>16:38</div>
-                            <div>XAU/USD</div>
-                            <div className="trade-type sell">Sell</div>
-                            <div>50</div>
-                            <div>2365.90</div>
-                            <div>2330.00</div>
-                            <div>2380.00</div>
-                            <div>3x</div>
-                            <div>-1.12%</div>
-                            {renderProfitCell("-18.50")}
-                        </div>
-                    </div>
-                ) : (
-                    <div className="history-list">
-                        <div className="trade-entry">
-                            <div>00002</div>
-                            <div>15:22</div>
-                            <div>EUR/USD</div>
-                            <div className="trade-type sell">Sell</div>
-                            <div>120</div>
-                            <div>1.0982</div>
-                            <div>1.0800</div>
-                            <div>1.1020</div>
-                            <div>2x</div>
-                            <div>+0.72%</div>
-                            {renderProfitCell("+32.00")}
-                        </div>
-                        <div className="trade-entry">
-                            <div>00001</div>
-                            <div>15:00</div>
-                            <div>GBP/USD</div>
-                            <div className="trade-type buy">Buy</div>
-                            <div>80</div>
-                            <div>1.2745</div>
-                            <div>1.2850</div>
-                            <div>1.2680</div>
-                            <div>4x</div>
-                            <div>-0.48%</div>
-                            {renderProfitCell("-18.00")}
-                        </div>
-                    </div>
-                )}
+                <div className={activeTab === "trades" ? "trades-list" : "history-list"}>
+                    {tradeHistory.length === 0 ? (
+                        <div className="no-trades">No trades yet</div>
+                    ) : (
+                        tradeHistory.map((trade, index) => (
+                            <div className="trade-entry" key={index}>
+                                <div>{String(trade.ticket).padStart(5, "0")}</div>
+                                <div>{trade.time}</div>
+                                <div>{trade.symbol}</div>
+                                <div className={`trade-type ${trade.isLong ? "buy" : "sell"}`}>
+                                    {trade.isLong ? "Buy" : "Sell"}
+                                </div>
+                                <div>{trade.volume}</div>
+                                <div>{trade.price}</div>
+                                <div>{trade.tp || "-"}</div>
+                                <div>{trade.sl || "-"}</div>
+                                <div>{trade.leverage}x</div>
+                                <div>{trade.change || "—"}</div>
+                                {renderProfitCell(trade.profit)}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );
