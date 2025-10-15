@@ -8,14 +8,14 @@ import {SyntheticGBP} from "../src/SyntheticGBP.sol";
 import {SyntheticJPY} from "../src/SyntheticJPY.sol";
 import {ForexEngine} from "../src/ForexEngine.sol";
 import {TokenConfig} from "../src/TokenConfig.sol";
-import "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 
 contract DeployForex is Script {
     struct Deployment {
         ForexEngine engine;
-        SyntheticEUR sEUR;
-        SyntheticGBP sGBP;
-        SyntheticJPY sJPY;
+        SyntheticEUR sEur;
+        SyntheticGBP sGbp;
+        SyntheticJPY sJpy;
         HelperConfig config;
     }
 
@@ -29,9 +29,9 @@ contract DeployForex is Script {
         vm.startBroadcast(network.deployerKey);
 
         // Deploy synthetic tokens
-        deployment.sEUR = new SyntheticEUR();
-        deployment.sGBP = new SyntheticGBP();
-        deployment.sJPY = new SyntheticJPY();
+        deployment.sEur = new SyntheticEUR();
+        deployment.sGbp = new SyntheticGBP();
+        deployment.sJpy = new SyntheticJPY();
 
         // Initialize arrays with proper lengths
         string[] memory symbols = new string[](3);
@@ -41,7 +41,7 @@ contract DeployForex is Script {
 
         // Configure EUR
         symbols[0] = "EUR";
-        tokenAddresses[0] = address(deployment.sEUR);
+        tokenAddresses[0] = address(deployment.sEur);
         priceFeeds[0] = network.priceFeedsSynthetic[0];
         tokenConfigs[0] = TokenConfig({
             liquidationThreshold: 50,
@@ -51,7 +51,7 @@ contract DeployForex is Script {
 
         // Configure GBP
         symbols[1] = "GBP";
-        tokenAddresses[1] = address(deployment.sGBP);
+        tokenAddresses[1] = address(deployment.sGbp);
         priceFeeds[1] = network.priceFeedsSynthetic[1];
         tokenConfigs[1] = TokenConfig({
             liquidationThreshold: 50,
@@ -61,7 +61,7 @@ contract DeployForex is Script {
 
         // Configure JPY
         symbols[2] = "JPY";
-        tokenAddresses[2] = address(deployment.sJPY);
+        tokenAddresses[2] = address(deployment.sJpy);
         priceFeeds[2] = network.priceFeedsSynthetic[2];
         tokenConfigs[2] = TokenConfig({
             liquidationThreshold: 50,
@@ -74,9 +74,9 @@ contract DeployForex is Script {
         console.log("Feed GBP/USD:", priceFeeds[1]);
         console.log("Feed JPY/USD:", priceFeeds[2]);
 
-        console.log("sEUR:", address(deployment.sEUR));
-        console.log("sGBP:", address(deployment.sGBP));
-        console.log("sJPY:", address(deployment.sJPY));
+        console.log("sEur:", address(deployment.sEur));
+        console.log("sGbp:", address(deployment.sGbp));
+        console.log("sJpy:", address(deployment.sJpy));
 
         // Deploy ForexEngine
         deployment.engine = new ForexEngine(
@@ -87,16 +87,17 @@ contract DeployForex is Script {
             tokenConfigs,
             priceFeeds
         );
-
+        deployment.engine.setWeth(network.collateralTokens[0]);
         // Set protocol reserve wallet
         deployment.engine.setProtocolReserveWallet(
             0xa25033FC4f01Fa8006910E42B5a1b3e9db85240b
         );
+        console.log("Engine:", address(deployment.engine));
 
         // Transfer ownership
-        deployment.sEUR.transferOwnership(address(deployment.engine));
-        deployment.sGBP.transferOwnership(address(deployment.engine));
-        deployment.sJPY.transferOwnership(address(deployment.engine));
+        deployment.sEur.transferOwnership(address(deployment.engine));
+        deployment.sGbp.transferOwnership(address(deployment.engine));
+        deployment.sJpy.transferOwnership(address(deployment.engine));
 
         vm.stopBroadcast();
         return deployment;

@@ -1,34 +1,37 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.18;
+pragma solidity ^0.8.20;
 
-import {SyntheticUSD} from "./SyntheticUSD.sol";
-import {SyntheticEUR} from "./SyntheticEUR.sol";
-import {SyntheticGBP} from "./SyntheticGBP.sol";
-import {SyntheticJPY} from "./SyntheticJPY.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/mocks/ERC20Mock.sol";
-import "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {OracleLib} from "./libraries/OracleLib.sol";
-import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {AggregatorV3Interface} from "../lib/chainlink-brownie-contracts/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {TokenConfig} from "./TokenConfig.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ISyntheticToken} from "./interfaces/ISyntheticToken.sol";
+
+// ---- Top-level IWETH interface (needed for native-ETH UX) ----
+interface IWETH {
+    function deposit() external payable;
+
+    function withdraw(uint256) external;
+
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    function balanceOf(address account) external view returns (uint256);
+
+    function decimals() external view returns (uint8);
+}
 
 contract ForexEngine is ReentrancyGuard, Ownable {
-    using SafeMath for uint256;
     using Address for address;
 
-    // Custom Errors
+    // Custom Errors (legacy names kept so tests continue to pass)
     error ForexEngine__NeedsMoreThanZero();
     error ForexEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
     error ForexEngine__SyntheticSymbolsAndAddressesMustMatchLength();
     error ForexEngine__NotAllowedToken();
     error ForexEngine__TransferFailed();
-    error ForexEngine__MintFailed();
     error ForexEngine__NotAllowedZeroAddress();
     error ForexEngine__InvalidSyntheticSymbol();
     error ForexEngine__StalePrice();
@@ -40,70 +43,93 @@ contract ForexEngine is ReentrancyGuard, Ownable {
     error ForexEngine__InvalidTokenAddress();
     error ForexEngine__CircuitBreakerTriggered();
     error ForexEngine__InvalidTpSlPrices();
-    error NoOpenPosition();
     error PositionAlreadyClosed();
     error PriceNotAtTrigger();
-    // Libraries
-    using OracleLib for AggregatorV3Interface;
+    error ForexEngine__WethNotSet();
+    error ForexEngine__DuplicateToken();
+    error ForexEngine__WithdrawalExceedsAvailable();
+
+    // Additional compact errors used by new logic
+    error ForexEngine__InvalidIndex();
+    error ForexEngine__InvalidPortion();
+    error ForexEngine__PositionNotOpen();
+    error ForexEngine__PriceWorseThanLimit();
+    error ForexEngine__InvalidBaseFeed();
+    error ForexEngine__InvalidQuoteFeed();
+    error ForexEngine__InvalidFeeds();
+    error ForexEngine__ReserveNotSet();
+    error ForexEngine__BufferTooHigh();
+    error ForexEngine__NoCollateralTokens();
+    error ForexEngine__SlippageCheckFailed();
 
     // Constants
-    uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
-    uint256 private constant BPS_DIVISOR = 10000;
+    uint256 private constant BPS_DIVISOR = 10_000;
     uint256 private constant MAX_STALENESS = 2 hours;
 
-    uint256 public constant MAX_LEVERAGE = 5; // Max leverage: 5x
-    uint256 public constant MIN_MARGIN_PERCENT = 30 * 100; // 30% in BPS
-    uint256 public constant LIQUIDATION_BONUS = 50; // 0.5% in BPS
-    uint256 public constant MIN_PRICE_MOVEMENT = 5; // 0.05% in BPS for TP/SL
-    uint256 public priceTriggerBuffer = 5; // 0.05% in basis points
-    uint256 public minLiquidationBuffer = 10; // 0.1% buffer for liquidations
+    uint256 public constant MAX_LEVERAGE = 5; // 5x
+    uint256 public constant MIN_MARGIN_PERCENT = 30 * 100; // 30% maint (bps)
+    uint256 public constant INITIAL_MARGIN_PERCENT = 50 * 100; // 50% initial (bps)
+    uint256 public constant LIQUIDATION_BONUS = 50; // 0.5% (bps)
+    uint256 public constant MIN_PRICE_MOVEMENT = 5; // 0.05% (bps)
 
-    // State Variables
+    // Tunables
+    uint256 public priceTriggerBuffer = 5; // 0.05% (bps)
+    uint256 public minLiquidationBuffer = 10; // 0.1% (bps)
+
+    // State
     int256 private s_totalProtocolPnl;
     bool private s_isPaused;
     bool private s_circuitBreakerTriggered;
 
-    mapping(address => address) private s_priceFeeds;
+    mapping(address => address) private s_priceFeeds; // collateral token -> feed
     address[] private s_collateralTokens;
 
     mapping(address => mapping(address => uint256))
         private s_collateralDeposited;
-    mapping(string => address) private s_syntheticTokens;
-    mapping(string => address) private s_syntheticPriceFeeds;
+    mapping(string => address) private s_syntheticTokens; // symbol -> token
+    mapping(string => address) private s_syntheticPriceFeeds; // symbol -> feed
 
-    mapping(address => uint256) private s_marginUsed;
-    address[] private s_traderAddresses;
-    mapping(address => bool) private s_isTrader;
+    mapping(address => uint256) private s_marginUsed; // USD 1e18
 
     address private s_protocolReserve;
     mapping(address => mapping(string => uint256))
-        public s_userSyntheticExposure;
-    string[] private s_syntheticSymbols;
+        public s_userSyntheticExposure; // baseUnits by symbol
     mapping(string => TokenConfig) public s_tokenConfig;
+
+    // WETH for native UX
+    address private s_weth;
 
     struct Position {
         address user;
         string pair;
         bool isLong;
-        uint256 entryPrice;
-        uint256 marginUsed;
+        uint256 entryPrice; // feed native units
+        uint256 marginUsed; // collateral token units
         uint256 leverage;
-        uint256 tradeSize;
+        uint256 tradeSize; // USD notional, 1e18
         uint256 timestamp;
         bool isOpen;
-        uint256 exitPrice;
-        int256 pnl;
+        uint256 exitPrice; // feed native units
+        int256 pnl; // USD 1e18
         uint256 closeTimestamp;
-        uint256 takeProfitPrice;
-        uint256 stopLossPrice;
-        uint256 liquidationPrice;
-        uint256 size;
+        uint256 takeProfitPrice; // feed native units
+        uint256 stopLossPrice; // feed native units
+        uint256 liquidationPrice; // feed native units (BUFFERED)
+        uint256 baseUnits; // synthetic token units (token decimals)
     }
 
     mapping(address => Position[]) private s_userPositions;
     mapping(address => int256) private s_realizedPnl;
-    mapping(address => mapping(string => Position)) public userPositions;
+
+    // Open-position ID tracking (per user & pair)
+    mapping(address => mapping(string => uint256[])) private s_openPositionIds;
+    mapping(address => mapping(string => mapping(uint256 => uint256)))
+        private s_openPosIndex;
+
+    // O(1) open-position count
+    mapping(address => uint256) private s_openPositionCount;
+
     // Events
     event CollateralDeposited(
         address indexed user,
@@ -122,7 +148,7 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         bool isLong,
         uint256 marginUsed,
         uint256 leverage,
-        uint256 tradeSize,
+        uint256 tradeSizeUsd1e18,
         uint256 entryPrice,
         uint256 liquidationPrice
     );
@@ -131,11 +157,17 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         string pair,
         bool isLong,
         uint256 marginUsed,
-        uint256 tradeSize,
+        uint256 tradeSizeUsd1e18,
         uint256 entryPrice,
         uint256 exitPrice,
-        int256 pnl,
+        int256 pnlUsd1e18,
         uint256 timestamp
+    );
+    event PositionTpSlModified(
+        uint256 indexed id,
+        uint256 takeProfit,
+        uint256 stopLoss,
+        address indexed user
     );
     event ProtocolReserveSet(
         address indexed oldReserve,
@@ -159,11 +191,12 @@ contract ForexEngine is ReentrancyGuard, Ownable {
     event CircuitBreakerReset();
     event ContractPaused();
     event ContractUnpaused();
-    event TriggeredAutoClose(
+    event WethSet(address indexed weth);
+    event PartialLiquidation(
         address indexed user,
-        string symbol,
-        string reason,
-        uint256 price
+        uint256 positionIndex,
+        uint256 portionBps,
+        uint256 tradeSizeUsdClosed
     );
 
     // Modifiers
@@ -171,18 +204,15 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         if (amount == 0) revert ForexEngine__NeedsMoreThanZero();
         _;
     }
-
     modifier isAllowedToken(address token) {
         if (s_priceFeeds[token] == address(0))
             revert ForexEngine__NotAllowedToken();
         _;
     }
-
     modifier whenNotPaused() {
         if (s_isPaused) revert ForexEngine__ContractPaused();
         _;
     }
-
     modifier whenNotCircuitBreaker() {
         if (s_circuitBreakerTriggered)
             revert ForexEngine__CircuitBreakerTriggered();
@@ -200,7 +230,6 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         if (tokenAddresses.length != priceFeedAddresses.length) {
             revert ForexEngine__TokenAddressesAndPriceFeedAddressedMustBeSameLength();
         }
-
         if (
             syntheticSymbols.length != syntheticTokenAddresses.length ||
             syntheticSymbols.length != syntheticConfigs.length ||
@@ -212,6 +241,8 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         for (uint256 i = 0; i < tokenAddresses.length; i++) {
             _validateTokenAddress(tokenAddresses[i]);
             _validatePriceFeed(priceFeedAddresses[i]);
+            if (s_priceFeeds[tokenAddresses[i]] != address(0))
+                revert ForexEngine__DuplicateToken();
             s_priceFeeds[tokenAddresses[i]] = priceFeedAddresses[i];
             s_collateralTokens.push(tokenAddresses[i]);
         }
@@ -220,81 +251,107 @@ contract ForexEngine is ReentrancyGuard, Ownable {
             string memory symbol = syntheticSymbols[j];
             _validateTokenAddress(syntheticTokenAddresses[j]);
             _validatePriceFeed(syntheticPriceFeeds[j]);
-
+            if (s_syntheticTokens[symbol] != address(0))
+                revert ForexEngine__DuplicateToken();
             s_syntheticTokens[symbol] = syntheticTokenAddresses[j];
             s_tokenConfig[symbol] = syntheticConfigs[j];
             s_syntheticPriceFeeds[symbol] = syntheticPriceFeeds[j];
-            s_syntheticSymbols.push(symbol);
+            // NOTE: removed s_syntheticSymbols push for size
         }
     }
 
-    // ========== Core Functions ==========
+    // ===================== Core =====================
 
+    /**
+     * @param maxSlippage Slippage guard in BPS vs oracle price (long: min acceptable, short: max acceptable)
+     */
     function openPosition(
         string memory pair,
         bool isLong,
         uint256 marginAmount,
         uint256 leverage,
         uint256 takeProfitPrice,
-        uint256 stopLossPrice
+        uint256 stopLossPrice,
+        uint256 maxSlippage
     ) external nonReentrant whenNotPaused whenNotCircuitBreaker {
-        // Input validation
         if (leverage == 0 || leverage > MAX_LEVERAGE)
             revert ForexEngine__InvalidLeverage();
         if (marginAmount == 0) revert ForexEngine__NeedsMoreThanZero();
 
-        // Get price feed and validate
         address feedAddr = s_syntheticPriceFeeds[pair];
         if (feedAddr == address(0))
             revert ForexEngine__InvalidSyntheticSymbol();
 
-        AggregatorV3Interface feed = AggregatorV3Interface(feedAddr);
-        (, int256 entryPrice, , uint256 updatedAt, ) = feed.latestRoundData();
+        (, int256 entryPriceRaw, , uint256 updatedAt, ) = AggregatorV3Interface(
+            feedAddr
+        ).latestRoundData();
+        _validatePrice(entryPriceRaw, updatedAt);
+        uint256 entryPrice = uint256(entryPriceRaw);
 
-        _validatePrice(entryPrice, updatedAt);
+        if (maxSlippage > 0) {
+            if (isLong) {
+                uint256 minOk = (entryPrice * (BPS_DIVISOR - maxSlippage)) /
+                    BPS_DIVISOR;
+                if (entryPrice < minOk)
+                    revert ForexEngine__SlippageCheckFailed();
+            } else {
+                uint256 maxOk = (entryPrice * (BPS_DIVISOR + maxSlippage)) /
+                    BPS_DIVISOR;
+                if (entryPrice > maxOk)
+                    revert ForexEngine__SlippageCheckFailed();
+            }
+        }
 
-        // Calculate liquidation price
+        // liquidationPrice includes buffer at OPEN
         uint256 liquidationPrice = _calculateLiquidationPrice(
-            uint256(entryPrice),
+            entryPrice,
             isLong,
             leverage
         );
 
-        // Validate TP/SL prices
         if (takeProfitPrice > 0 || stopLossPrice > 0) {
             _validateTpSlPrices(
-                uint256(entryPrice),
+                entryPrice,
                 takeProfitPrice,
                 stopLossPrice,
                 isLong
             );
         }
 
-        // Check margin requirements
         _validateMarginRequirements(msg.sender, marginAmount, leverage);
 
-        // Calculate trade size
-        uint256 tradeSize = marginAmount.mul(leverage);
+        // USD notional and base units
+        address baseCol = _baseCollateral();
+        uint256 notionalUsd1e18 = _notionalUsd1e18(
+            marginAmount,
+            leverage,
+            baseCol
+        );
 
-        // Verify synthetic token exists
         address sToken = s_syntheticTokens[pair];
         if (sToken == address(0)) revert ForexEngine__InvalidSyntheticSymbol();
+        uint256 baseUnits = _baseUnitsForNotional(
+            notionalUsd1e18,
+            entryPrice,
+            sToken,
+            feedAddr
+        );
 
-        // Create position
-        ISyntheticToken(sToken).mint(address(this), tradeSize);
-        s_userSyntheticExposure[msg.sender][pair] = s_userSyntheticExposure[
-            msg.sender
-        ][pair].add(tradeSize);
+        ISyntheticToken(sToken).mint(address(this), baseUnits);
+        s_userSyntheticExposure[msg.sender][pair] =
+            s_userSyntheticExposure[msg.sender][pair] +
+            baseUnits;
 
+        uint256 positionIndex = s_userPositions[msg.sender].length;
         s_userPositions[msg.sender].push(
             Position({
                 user: msg.sender,
                 pair: pair,
                 isLong: isLong,
-                entryPrice: uint256(entryPrice),
+                entryPrice: entryPrice,
                 marginUsed: marginAmount,
                 leverage: leverage,
-                tradeSize: tradeSize,
+                tradeSize: notionalUsd1e18,
                 timestamp: block.timestamp,
                 isOpen: true,
                 exitPrice: 0,
@@ -303,18 +360,14 @@ contract ForexEngine is ReentrancyGuard, Ownable {
                 takeProfitPrice: takeProfitPrice,
                 stopLossPrice: stopLossPrice,
                 liquidationPrice: liquidationPrice,
-                size: 0
+                baseUnits: baseUnits
             })
         );
+        _trackOpenPosition(msg.sender, pair, positionIndex);
+        s_openPositionCount[msg.sender] += 1;
 
-        // Update used margin (convert to USD)
-        uint256 marginAmountUSD = _convertToUSD(
-            s_collateralTokens[0],
-            marginAmount
-        );
-        s_marginUsed[msg.sender] = s_marginUsed[msg.sender].add(
-            marginAmountUSD
-        );
+        uint256 marginAmountUSD = _convertToUSD(baseCol, marginAmount);
+        s_marginUsed[msg.sender] = s_marginUsed[msg.sender] + marginAmountUSD;
 
         emit PositionOpened(
             msg.sender,
@@ -322,21 +375,25 @@ contract ForexEngine is ReentrancyGuard, Ownable {
             isLong,
             marginAmount,
             leverage,
-            tradeSize,
-            uint256(entryPrice),
+            notionalUsd1e18,
+            entryPrice,
             liquidationPrice
         );
     }
 
-    function closePosition(uint256 index) external nonReentrant whenNotPaused {
-        require(index < s_userPositions[msg.sender].length, "Invalid index");
+    function closePosition(
+        uint256 index,
+        uint256 priceBound
+    ) external nonReentrant whenNotPaused {
+        if (index >= s_userPositions[msg.sender].length)
+            revert ForexEngine__InvalidIndex();
         Position storage position = s_userPositions[msg.sender][index];
-        require(position.isOpen, "Position already closed");
+        if (!position.isOpen) revert PositionAlreadyClosed();
 
-        _closePosition(msg.sender, index, false);
+        _closePosition(msg.sender, index, false, priceBound);
     }
 
-    // ========== Collateral Management ==========
+    // ===================== Collateral =====================
 
     function depositCollateral(
         address token,
@@ -348,9 +405,9 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         nonReentrant
         whenNotPaused
     {
-        s_collateralDeposited[msg.sender][token] = s_collateralDeposited[
-            msg.sender
-        ][token].add(amount);
+        s_collateralDeposited[msg.sender][token] =
+            s_collateralDeposited[msg.sender][token] +
+            amount;
         emit CollateralDeposited(msg.sender, token, amount);
 
         bool success = IERC20(token).transferFrom(
@@ -365,128 +422,252 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         address token,
         uint256 amount
     ) external moreThanZero(amount) nonReentrant whenNotPaused {
-        // Check margin requirements after redemption
-        uint256 newBalance = s_collateralDeposited[msg.sender][token].sub(
-            amount
-        );
-        uint256 newCollateralValue = _convertToUSD(token, newBalance);
-        uint256 usedMargin = s_marginUsed[msg.sender];
+        uint256 available = getAvailableToWithdraw(msg.sender, token);
+        if (amount > available)
+            revert ForexEngine__WithdrawalExceedsAvailable();
 
-        if (
-            newCollateralValue.mul(BPS_DIVISOR) <
-            usedMargin.mul(MIN_MARGIN_PERCENT)
-        ) {
-            revert ForexEngine__InsufficientMargin();
-        }
-
-        s_collateralDeposited[msg.sender][token] = newBalance;
+        s_collateralDeposited[msg.sender][token] =
+            s_collateralDeposited[msg.sender][token] -
+            amount;
         emit CollateralRedeemed(msg.sender, msg.sender, token, amount);
 
         bool success = IERC20(token).transfer(msg.sender, amount);
         if (!success) revert ForexEngine__TransferFailed();
     }
 
-    // ========== Risk Management ==========
+    // ---- Native ETH UX (wrap to WETH on deposit; unwrap on withdraw) ----
+
+    function setWeth(address weth) external onlyOwner {
+        _validateTokenAddress(weth);
+        s_weth = weth;
+
+        bool exists = false;
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+            if (s_collateralTokens[i] == weth) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) s_collateralTokens.push(weth);
+
+        emit WethSet(weth);
+    }
+
+    function getWeth() external view returns (address) {
+        return s_weth;
+    }
+
+    function depositETH() external payable nonReentrant whenNotPaused {
+        if (s_weth == address(0)) revert ForexEngine__WethNotSet();
+        if (msg.value == 0) revert ForexEngine__NeedsMoreThanZero();
+
+        IWETH(s_weth).deposit{value: msg.value}();
+        s_collateralDeposited[msg.sender][s_weth] =
+            s_collateralDeposited[msg.sender][s_weth] +
+            msg.value;
+
+        emit CollateralDeposited(msg.sender, s_weth, msg.value);
+    }
+
+    function withdrawETH(
+        uint256 amount
+    ) external nonReentrant whenNotPaused moreThanZero(amount) {
+        if (s_weth == address(0)) revert ForexEngine__WethNotSet();
+
+        uint256 available = getAvailableToWithdraw(msg.sender, s_weth);
+        if (amount > available)
+            revert ForexEngine__WithdrawalExceedsAvailable();
+
+        s_collateralDeposited[msg.sender][s_weth] =
+            s_collateralDeposited[msg.sender][s_weth] -
+            amount;
+
+        IWETH(s_weth).withdraw(amount);
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        if (!ok) revert ForexEngine__TransferFailed();
+
+        emit CollateralRedeemed(msg.sender, msg.sender, s_weth, amount);
+    }
+
+    // ===================== Risk =====================
 
     function checkAndLiquidate(address user) external nonReentrant {
-        uint256 marginRatioBps = getUserMarginRatio(user);
+        _checkAndLiquidate(user, 0, 50);
+    }
 
-        if (marginRatioBps >= MIN_MARGIN_PERCENT) {
+    function checkAndLiquidateRange(
+        address user,
+        uint256 start,
+        uint256 maxCount
+    ) external nonReentrant {
+        _checkAndLiquidate(user, start, maxCount);
+    }
+
+    function _checkAndLiquidate(
+        address user,
+        uint256 start,
+        uint256 maxCount
+    ) internal {
+        uint256 marginRatioBps = getUserMarginRatio(user);
+        if (marginRatioBps >= MIN_MARGIN_PERCENT)
             revert ForexEngine__PositionNotLiquidated();
-        }
 
         Position[] storage positions = s_userPositions[user];
         uint256 len = positions.length;
+        if (start >= len || maxCount == 0) return;
+
+        uint256 end = start + maxCount;
+        if (end > len) end = len;
+
         uint256 totalBonus = 0;
 
-        for (uint256 i = 0; i < len; i++) {
+        for (uint256 i = start; i < end; i++) {
             if (positions[i].isOpen) {
-                totalBonus = totalBonus.add(_liquidatePosition(user, i));
+                address feedAddr = s_syntheticPriceFeeds[positions[i].pair];
+                (
+                    ,
+                    int256 currentPriceRaw,
+                    ,
+                    uint256 updatedAt,
+
+                ) = AggregatorV3Interface(feedAddr).latestRoundData();
+                _validatePrice(currentPriceRaw, updatedAt);
+                uint256 currentPrice = uint256(currentPriceRaw);
+
+                if (_shouldLiquidate(positions[i], currentPrice)) {
+                    totalBonus = totalBonus + _liquidatePosition(user, i);
+                }
             }
         }
 
-        emit UserLiquidated(user, block.timestamp, totalBonus);
+        if (totalBonus > 0)
+            emit UserLiquidated(user, block.timestamp, totalBonus);
     }
 
-    function _executeClose(
+    function partiallyLiquidatePosition(
         address user,
-        string memory symbol,
-        uint256 executionPrice,
-        string memory reason
-    ) internal {
-        Position storage position = userPositions[user][symbol];
+        uint256 index,
+        uint256 portionBps
+    ) external nonReentrant onlyOwner {
+        if (portionBps == 0 || portionBps > BPS_DIVISOR)
+            revert ForexEngine__InvalidPortion();
+        if (index >= s_userPositions[user].length)
+            revert ForexEngine__InvalidIndex();
 
-        // Update position state
-        position.isOpen = false;
-        position.exitPrice = executionPrice;
-        position.closeTimestamp = block.timestamp;
+        Position storage position = s_userPositions[user][index];
+        if (!position.isOpen) revert ForexEngine__PositionNotOpen();
 
-        // Calculate PnL
-        int256 priceDiff = position.isLong
-            ? int256(executionPrice) - int256(position.entryPrice)
-            : int256(position.entryPrice) - int256(executionPrice);
-        position.pnl =
-            (int256(position.size) * priceDiff) /
-            int256(position.entryPrice);
+        address feedAddr = s_syntheticPriceFeeds[position.pair];
+        (
+            ,
+            int256 currentPriceRaw,
+            ,
+            uint256 updatedAt,
 
-        emit PositionClosed(
+        ) = AggregatorV3Interface(feedAddr).latestRoundData();
+        _validatePrice(currentPriceRaw, updatedAt);
+        uint256 currentPrice = uint256(currentPriceRaw);
+
+        if (!_shouldLiquidate(position, currentPrice))
+            revert ForexEngine__PositionNotLiquidated();
+
+        // Proportional amounts
+        uint256 closeTradeUsd = (position.tradeSize * portionBps) / BPS_DIVISOR; // USD 1e18
+        uint256 closeBaseUnits = (position.baseUnits * portionBps) /
+            BPS_DIVISOR;
+        uint256 closeMargin = (position.marginUsed * portionBps) / BPS_DIVISOR;
+
+        _closePositionPortion(
             user,
-            symbol,
-            position.isLong,
-            position.marginUsed,
-            position.size,
-            position.entryPrice,
-            executionPrice,
-            position.pnl,
-            block.timestamp
+            index,
+            closeMargin,
+            closeTradeUsd,
+            closeBaseUnits,
+            currentPrice
         );
 
-        // Add this event emission
-        emit TpSlTriggered(
-            user,
-            symbol,
-            position.isLong,
-            executionPrice,
-            reason
-        );
+        // Update remaining exposure
+        position.marginUsed = position.marginUsed - closeMargin;
+        position.tradeSize = position.tradeSize - closeTradeUsd;
+        position.baseUnits = position.baseUnits - closeBaseUnits;
+
+        // If fully closed after partial
+        if (position.baseUnits == 0) {
+            position.isOpen = false;
+            position.exitPrice = currentPrice;
+            position.closeTimestamp = block.timestamp;
+            _untrackOpenPosition(user, position.pair, index);
+            if (s_openPositionCount[user] > 0) s_openPositionCount[user] -= 1;
+        }
+
+        emit PartialLiquidation(user, index, portionBps, closeTradeUsd);
+    }
+
+    // NEW: Modify TP/SL on an open position owned by msg.sender (0 = clear)
+    function setTpSl(
+        uint256 index,
+        uint256 tp,
+        uint256 sl
+    ) external nonReentrant whenNotPaused {
+        if (index >= s_userPositions[msg.sender].length)
+            revert ForexEngine__InvalidIndex();
+        Position storage p = s_userPositions[msg.sender][index];
+        if (!p.isOpen) revert PositionAlreadyClosed();
+
+        if (tp > 0 || sl > 0) {
+            _validateTpSlPrices(p.entryPrice, tp, sl, p.isLong);
+        }
+
+        p.takeProfitPrice = tp; // 0 clears
+        p.stopLossPrice = sl; // 0 clears
+
+        emit PositionTpSlModified(index, tp, sl, msg.sender);
     }
 
     function checkTpSlAndClose(
-        address user,
-        string memory symbol
-    ) external nonReentrant {
-        Position storage position = userPositions[user][symbol];
-        if (position.size == 0) revert NoOpenPosition();
-        if (!position.isOpen) revert PositionAlreadyClosed();
+        uint256 index
+    ) external nonReentrant whenNotPaused returns (bool closed) {
+        if (index >= s_userPositions[msg.sender].length)
+            revert ForexEngine__InvalidIndex();
+        Position storage p = s_userPositions[msg.sender][index];
+        if (!p.isOpen) revert PositionAlreadyClosed();
 
-        // Get price in USD
-        uint256 currentPrice = getDerivedPrice(symbol, "USD");
-        uint256 adjustedPrice = _applyPriceBuffer(
-            currentPrice,
-            position.isLong
+        address feedAddr = s_syntheticPriceFeeds[p.pair];
+        if (feedAddr == address(0))
+            revert ForexEngine__InvalidSyntheticSymbol();
+
+        (, int256 answer, , uint256 updatedAt, ) = AggregatorV3Interface(
+            feedAddr
+        ).latestRoundData();
+        _validatePrice(answer, updatedAt);
+        uint256 current = uint256(answer);
+
+        uint256 adjusted = _applyPriceBuffer(current, p.isLong);
+
+        bool tpHit = (p.takeProfitPrice > 0) &&
+            (
+                p.isLong
+                    ? adjusted >= p.takeProfitPrice
+                    : adjusted <= p.takeProfitPrice
+            );
+        bool slHit = (p.stopLossPrice > 0) &&
+            (
+                p.isLong
+                    ? adjusted <= p.stopLossPrice
+                    : adjusted >= p.stopLossPrice
+            );
+
+        if (!(tpHit || slHit)) revert PriceNotAtTrigger();
+
+        emit TpSlTriggered(
+            msg.sender,
+            p.pair,
+            p.isLong,
+            current,
+            tpHit ? "TP" : "SL"
         );
-
-        // Check TP/SL with buffer
-        if (
-            position.takeProfitPrice > 0 &&
-            adjustedPrice >= position.takeProfitPrice
-        ) {
-            _executeClose(user, symbol, currentPrice, "TP");
-            return; // Exit after successful close
-        } else if (
-            position.stopLossPrice > 0 &&
-            adjustedPrice <= position.stopLossPrice
-        ) {
-            _executeClose(user, symbol, currentPrice, "SL");
-            return;
-        }
-        // Check liquidation
-        else if (_shouldLiquidate(position, currentPrice)) {
-            _executeClose(user, symbol, currentPrice, "LIQ");
-            return;
-        }
-
-        revert PriceNotAtTrigger();
+        _closePosition(msg.sender, index, false, 0);
+        return true;
     }
 
     function _applyPriceBuffer(
@@ -495,33 +676,66 @@ contract ForexEngine is ReentrancyGuard, Ownable {
     ) internal view returns (uint256) {
         return
             isLong
-                ? (price * (10_000 - priceTriggerBuffer)) / 10_000 // Long: Reduce price
-                : (price * (10_000 + priceTriggerBuffer)) / 10_000; // Short: Increase price
+                ? (price * (BPS_DIVISOR - priceTriggerBuffer)) / BPS_DIVISOR
+                : (price * (BPS_DIVISOR + priceTriggerBuffer)) / BPS_DIVISOR;
     }
 
     function _shouldLiquidate(
         Position memory position,
         uint256 currentPrice
-    ) internal view returns (bool) {
-        uint256 bufferAdjustedPrice = position.isLong
-            ? (currentPrice * (10_000 + minLiquidationBuffer)) / 10_000
-            : (currentPrice * (10_000 - minLiquidationBuffer)) / 10_000;
-
+    ) internal pure returns (bool) {
         return
             position.isLong
-                ? bufferAdjustedPrice <= position.liquidationPrice
-                : bufferAdjustedPrice >= position.liquidationPrice;
+                ? (currentPrice <= position.liquidationPrice)
+                : (currentPrice >= position.liquidationPrice);
     }
 
-    // ========== Admin Functions ==========
+    function getAvailableToWithdraw(
+        address user,
+        address token
+    ) public view returns (uint256) {
+        uint256 userTokenBal = s_collateralDeposited[user][token];
+        if (userTokenBal == 0) return 0;
+
+        (
+            bool okTotal,
+            uint256 totalCollateralUsd
+        ) = _getTotalCollateralValue_safe(user);
+        if (!okTotal) return 0;
+
+        uint256 usedMarginUsd = s_marginUsed[user];
+        if (usedMarginUsd == 0) {
+            return userTokenBal;
+        }
+
+        uint256 maintReqUsd = (usedMarginUsd * MIN_MARGIN_PERCENT) /
+            BPS_DIVISOR;
+        if (totalCollateralUsd <= maintReqUsd) return 0;
+
+        uint256 availableUsd = totalCollateralUsd - maintReqUsd;
+
+        address feed = s_priceFeeds[token];
+        (bool okPrice, uint256 p1e18) = _safePrice1e18(feed);
+        if (!okPrice || p1e18 == 0) return 0;
+
+        uint8 tokenDecimals = ERC20(token).decimals();
+        uint256 tokenAmount1e18 = (availableUsd * PRECISION) / p1e18;
+
+        uint256 tokenAmount = (tokenDecimals >= 18)
+            ? tokenAmount1e18 * (10 ** (tokenDecimals - 18))
+            : tokenAmount1e18 / (10 ** (18 - tokenDecimals));
+
+        return tokenAmount > userTokenBal ? userTokenBal : tokenAmount;
+    }
+
+    // ===================== Admin =====================
 
     function setSyntheticPriceFeed(
         string memory symbol,
         address newFeed
     ) external onlyOwner {
-        if (bytes(symbol).length == 0 || newFeed == address(0)) {
+        if (bytes(symbol).length == 0 || newFeed == address(0))
             revert ForexEngine__NotAllowedZeroAddress();
-        }
         _validatePriceFeed(newFeed);
         s_syntheticPriceFeeds[symbol] = newFeed;
     }
@@ -530,15 +744,13 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         address token,
         address priceFeed
     ) external onlyOwner {
-        if (token == address(0) || priceFeed == address(0)) {
+        if (token == address(0) || priceFeed == address(0))
             revert ForexEngine__NotAllowedZeroAddress();
-        }
         _validateTokenAddress(token);
         _validatePriceFeed(priceFeed);
 
         s_priceFeeds[token] = priceFeed;
 
-        // Add token to the array only if it's not already there
         bool exists = false;
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             if (s_collateralTokens[i] == token) {
@@ -546,10 +758,7 @@ contract ForexEngine is ReentrancyGuard, Ownable {
                 break;
             }
         }
-
-        if (!exists) {
-            s_collateralTokens.push(token);
-        }
+        if (!exists) s_collateralTokens.push(token);
     }
 
     function setProtocolReserveWallet(address newReserve) external onlyOwner {
@@ -580,16 +789,24 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         emit ContractUnpaused();
     }
 
-    function setPriceTriggerBuffer(uint256 newBuffer) external onlyOwner {
-        priceTriggerBuffer = newBuffer;
+    // Combined setter to save bytes
+    function setBuffers(
+        uint256 priceBuffer,
+        uint256 liquidationBuffer
+    ) external onlyOwner {
+        if (priceBuffer > 1000 || liquidationBuffer > 1000)
+            revert ForexEngine__BufferTooHigh(); // Max 10% each
+        priceTriggerBuffer = priceBuffer;
+        minLiquidationBuffer = liquidationBuffer;
     }
 
-    // ========== Internal Functions ==========
+    // ===================== Internal =====================
 
     function _closePosition(
         address user,
         uint256 index,
-        bool isLiquidation
+        bool isLiquidation,
+        uint256 priceBound
     ) internal returns (uint256) {
         Position storage position = s_userPositions[user][index];
         if (!position.isOpen) return 0;
@@ -604,100 +821,114 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         _validatePrice(exitPriceRaw, updatedAt);
         uint256 exitPrice = uint256(exitPriceRaw);
 
-        // Calculate PnL using safe int256 arithmetic
-        int256 priceDiff = position.isLong
-            ? int256(exitPrice) - int256(position.entryPrice)
-            : int256(position.entryPrice) - int256(exitPrice);
+        if (priceBound != 0) {
+            if (position.isLong) {
+                if (exitPrice < priceBound)
+                    revert ForexEngine__PriceWorseThanLimit();
+            } else {
+                if (exitPrice > priceBound)
+                    revert ForexEngine__PriceWorseThanLimit();
+            }
+        }
 
-        int256 pnl = (int256(position.tradeSize) * priceDiff) /
-            int256(position.entryPrice);
-
-        // Burn synthetic tokens
+        // -------- PnL: base size * (exit - entry), in 1e18 --------
         address sToken = s_syntheticTokens[position.pair];
-        if (sToken == address(0)) revert ForexEngine__InvalidSyntheticSymbol();
-        require(position.tradeSize > 0, "Invalid trade size");
-        ISyntheticToken(sToken).burn(position.tradeSize);
-        s_userSyntheticExposure[user][position.pair] = s_userSyntheticExposure[
-            user
-        ][position.pair].sub(position.tradeSize);
+        uint8 stDec = ERC20(sToken).decimals();
+        uint8 pDec = AggregatorV3Interface(feedAddr).decimals();
 
-        // Convert margin used to USD and subtract
+        uint256 base1e18 = (stDec >= 18)
+            ? position.baseUnits * (10 ** (18 - stDec))
+            : position.baseUnits / (10 ** (18 - stDec));
+        uint256 entry1e18 = _normalizePrice1e18(
+            int256(position.entryPrice),
+            pDec
+        );
+        uint256 exit1e18 = _normalizePrice1e18(int256(exitPrice), pDec);
+
+        int256 pnl = position.isLong
+            ? (int256(base1e18) * (int256(exit1e18) - int256(entry1e18))) /
+                int256(PRECISION)
+            : (int256(base1e18) * (int256(entry1e18) - int256(exit1e18))) /
+                int256(PRECISION);
+        // -----------------------------------------------------------
+
+        ISyntheticToken(sToken).burn(position.baseUnits);
+        s_userSyntheticExposure[user][position.pair] =
+            s_userSyntheticExposure[user][position.pair] -
+            position.baseUnits;
+
         uint256 marginUSD = _convertToUSD(
-            s_collateralTokens[0],
+            _baseCollateral(),
             position.marginUsed
         );
-        s_marginUsed[user] = s_marginUsed[user].sub(marginUSD);
+        s_marginUsed[user] = s_marginUsed[user] - marginUSD;
 
-        address baseToken = s_collateralTokens[0];
+        address baseToken = _baseCollateral();
         uint256 bonusAmount = 0;
 
         if (pnl >= 0) {
-            // Profit handling
-            require(s_protocolReserve != address(0), "Reserve not set");
+            if (s_protocolReserve == address(0))
+                revert ForexEngine__ReserveNotSet();
             uint256 profit = uint256(pnl);
 
             if (isLiquidation) {
-                bonusAmount = profit.mul(LIQUIDATION_BONUS).div(BPS_DIVISOR);
-                profit = profit.sub(bonusAmount);
+                bonusAmount = (profit * LIQUIDATION_BONUS) / BPS_DIVISOR;
+                profit = profit - bonusAmount;
             }
 
-            bool success = IERC20(baseToken).transferFrom(
-                s_protocolReserve,
-                address(this),
-                profit
+            uint256 protocolBalance = IERC20(baseToken).balanceOf(
+                s_protocolReserve
             );
-            if (!success) revert ForexEngine__TransferFailed();
+            if (protocolBalance < profit) profit = protocolBalance;
 
-            s_collateralDeposited[user][baseToken] = s_collateralDeposited[
-                user
-            ][baseToken].add(profit);
-            if (bonusAmount > 0) {
-                s_collateralDeposited[msg.sender][
-                    baseToken
-                ] = s_collateralDeposited[msg.sender][baseToken].add(
-                    bonusAmount
+            if (profit > 0) {
+                bool success = IERC20(baseToken).transferFrom(
+                    s_protocolReserve,
+                    address(this),
+                    profit
                 );
+                if (!success) revert ForexEngine__TransferFailed();
+                s_collateralDeposited[user][baseToken] =
+                    s_collateralDeposited[user][baseToken] +
+                    profit;
+            }
+
+            if (bonusAmount > 0) {
+                s_collateralDeposited[msg.sender][baseToken] =
+                    s_collateralDeposited[msg.sender][baseToken] +
+                    bonusAmount;
             }
 
             emit ProtocolLossCovered(user, profit);
         } else {
-            // Loss handling
             uint256 loss = uint256(-pnl);
             uint256 userBalance = s_collateralDeposited[user][baseToken];
-
             if (loss > userBalance) loss = userBalance;
 
-            s_collateralDeposited[user][baseToken] = s_collateralDeposited[
-                user
-            ][baseToken].sub(loss);
+            s_collateralDeposited[user][baseToken] =
+                s_collateralDeposited[user][baseToken] -
+                loss;
 
             if (isLiquidation) {
-                bonusAmount = loss.mul(LIQUIDATION_BONUS).div(BPS_DIVISOR);
-                loss = loss.sub(bonusAmount);
-                s_collateralDeposited[msg.sender][
-                    baseToken
-                ] = s_collateralDeposited[msg.sender][baseToken].add(
-                    bonusAmount
-                );
+                bonusAmount = (loss * LIQUIDATION_BONUS) / BPS_DIVISOR;
+                loss = loss - bonusAmount;
+                s_collateralDeposited[msg.sender][baseToken] =
+                    s_collateralDeposited[msg.sender][baseToken] +
+                    bonusAmount;
             }
 
-            IERC20(baseToken).transfer(s_protocolReserve, loss);
+            bool xferOk = IERC20(baseToken).transfer(s_protocolReserve, loss);
+            if (!xferOk) revert ForexEngine__TransferFailed();
             emit ProtocolProfitTaken(user, loss);
         }
 
-        // Update position state
         position.exitPrice = exitPrice;
         position.pnl = pnl;
         position.closeTimestamp = block.timestamp;
         position.isOpen = false;
+        _untrackOpenPosition(user, position.pair, index);
+        if (s_openPositionCount[user] > 0) s_openPositionCount[user] -= 1;
 
-        // Track unique traders
-        if (!s_isTrader[user]) {
-            s_isTrader[user] = true;
-            s_traderAddresses.push(user);
-        }
-
-        // Fixed: Use native arithmetic for int256
         s_realizedPnl[user] = s_realizedPnl[user] + pnl;
         s_totalProtocolPnl = s_totalProtocolPnl - pnl;
 
@@ -716,41 +947,161 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         return bonusAmount;
     }
 
+    // Close a portion with correct PnL math
+    function _closePositionPortion(
+        address user,
+        uint256 index,
+        uint256 marginAmount,
+        uint256 /* tradeUsd1e18 */,
+        uint256 baseUnits,
+        uint256 exitPrice
+    ) internal {
+        Position storage position = s_userPositions[user][index];
+
+        address sToken = s_syntheticTokens[position.pair];
+        uint8 stDec = ERC20(sToken).decimals();
+        uint8 pDec = AggregatorV3Interface(s_syntheticPriceFeeds[position.pair])
+            .decimals();
+
+        uint256 base1e18 = (stDec >= 18)
+            ? baseUnits * (10 ** (18 - stDec))
+            : baseUnits / (10 ** (18 - stDec));
+        uint256 entry1e18 = _normalizePrice1e18(
+            int256(position.entryPrice),
+            pDec
+        );
+        uint256 exit1e18 = _normalizePrice1e18(int256(exitPrice), pDec);
+
+        int256 pnl = position.isLong
+            ? (int256(base1e18) * (int256(exit1e18) - int256(entry1e18))) /
+                int256(PRECISION)
+            : (int256(base1e18) * (int256(entry1e18) - int256(exit1e18))) /
+                int256(PRECISION);
+
+        ISyntheticToken(sToken).burn(baseUnits);
+        s_userSyntheticExposure[user][position.pair] =
+            s_userSyntheticExposure[user][position.pair] -
+            baseUnits;
+
+        uint256 marginUSD = _convertToUSD(_baseCollateral(), marginAmount);
+        s_marginUsed[user] = s_marginUsed[user] - marginUSD;
+
+        address baseToken = _baseCollateral();
+
+        if (pnl >= 0) {
+            if (s_protocolReserve == address(0))
+                revert ForexEngine__ReserveNotSet();
+            uint256 profit = uint256(pnl);
+
+            uint256 protocolBalance = IERC20(baseToken).balanceOf(
+                s_protocolReserve
+            );
+            if (protocolBalance < profit) profit = protocolBalance;
+
+            if (profit > 0) {
+                bool success = IERC20(baseToken).transferFrom(
+                    s_protocolReserve,
+                    address(this),
+                    profit
+                );
+                if (!success) revert ForexEngine__TransferFailed();
+                s_collateralDeposited[user][baseToken] =
+                    s_collateralDeposited[user][baseToken] +
+                    profit;
+            }
+
+            emit ProtocolLossCovered(user, profit);
+        } else {
+            uint256 loss = uint256(-pnl);
+            uint256 userBalance = s_collateralDeposited[user][baseToken];
+            if (loss > userBalance) loss = userBalance;
+
+            s_collateralDeposited[user][baseToken] =
+                s_collateralDeposited[user][baseToken] -
+                loss;
+
+            bool xferOk = IERC20(baseToken).transfer(s_protocolReserve, loss);
+            if (!xferOk) revert ForexEngine__TransferFailed();
+
+            emit ProtocolProfitTaken(user, loss);
+        }
+
+        s_realizedPnl[user] = s_realizedPnl[user] + pnl;
+        s_totalProtocolPnl = s_totalProtocolPnl - pnl;
+    }
+
     function _liquidatePosition(
         address user,
         uint256 index
     ) internal returns (uint256) {
-        return _closePosition(user, index, true);
+        return _closePosition(user, index, true, 0);
     }
+
+    // -------- Safe / strict pricing & margin helpers --------
 
     function _validatePrice(int256 price, uint256 updatedAt) internal view {
         if (price <= 0) revert ForexEngine__InvalidPrice();
         if (
             block.timestamp > updatedAt &&
-            block.timestamp.sub(updatedAt) > MAX_STALENESS
+            block.timestamp - updatedAt > MAX_STALENESS
         ) {
             revert ForexEngine__StalePrice();
         }
     }
 
-    // Note: isContract() fails for freshly deployed contracts during constructor,
-    // so we skip this check at deploy time. Safe to verify later.
-    //will change view if uncommented later
-
-    function _validateTokenAddress(address token) internal pure {
-        if (token == address(0)) revert ForexEngine__NotAllowedZeroAddress();
-        // if (!token.isContract()) revert ForexEngine__InvalidTokenAddress();
+    // Non-reverting safe price in 1e18
+    function _safePrice1e18(
+        address feed
+    ) internal view returns (bool ok, uint256 price1e18) {
+        if (feed == address(0) || !feed.isContract()) return (false, 0);
+        try AggregatorV3Interface(feed).latestRoundData() returns (
+            uint80,
+            int256 answer,
+            uint256,
+            uint256 updatedAt,
+            uint80
+        ) {
+            if (answer <= 0) return (false, 0);
+            if (
+                block.timestamp > updatedAt &&
+                block.timestamp - updatedAt > MAX_STALENESS
+            ) return (false, 0);
+            try AggregatorV3Interface(feed).decimals() returns (uint8 d) {
+                return (true, _normalizePrice1e18(answer, d));
+            } catch {
+                return (false, 0);
+            }
+        } catch {
+            return (false, 0);
+        }
     }
 
-    function _validatePriceFeed(address feed) internal view {
-        if (feed == address(0)) revert ForexEngine__NotAllowedZeroAddress();
-        if (!feed.isContract()) revert ForexEngine__InvalidTokenAddress();
+    // Safe USD conversion (returns ok + usd in 1e18)
+    function _convertToUSD_safe(
+        address token,
+        uint256 amount
+    ) internal view returns (bool ok, uint256 usd1e18) {
+        address feedAddr = s_priceFeeds[token];
+        (bool okp, uint256 p1e18) = _safePrice1e18(feedAddr);
+        if (!okp) return (false, 0);
+        uint8 td = ERC20(token).decimals();
+        uint256 a1e18 = _normalizeAmount1e18(amount, td);
+        return (true, (a1e18 * p1e18) / PRECISION);
+    }
 
-        try AggregatorV3Interface(feed).decimals() returns (uint8) {
-            // Success
-        } catch {
-            revert ForexEngine__InvalidTokenAddress();
+    function _getTotalCollateralValue_safe(
+        address user
+    ) internal view returns (bool ok, uint256 total) {
+        total = 0;
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+            address token = s_collateralTokens[i];
+            uint256 amount = s_collateralDeposited[user][token];
+            if (amount == 0) continue;
+            (bool okc, uint256 usd1e18) = _convertToUSD_safe(token, amount);
+            if (!okc) return (false, 0);
+            total = total + usd1e18;
         }
+        return (true, total);
     }
 
     function _validateMarginRequirements(
@@ -758,14 +1109,48 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         uint256 marginAmount,
         uint256 leverage
     ) internal view {
-        uint256 totalCollateralValue = _getTotalCollateralValue(user);
-        uint256 requiredMargin = marginAmount
-            .mul(leverage)
-            .mul(MIN_MARGIN_PERCENT)
-            .div(BPS_DIVISOR);
+        (
+            bool okTotal,
+            uint256 totalCollateralUsd
+        ) = _getTotalCollateralValue_safe(user);
+        if (!okTotal) revert ForexEngine__StalePrice();
 
-        if (totalCollateralValue < requiredMargin) {
+        (bool okNewMargin, uint256 newMarginUsd) = _convertToUSD_safe(
+            _baseCollateral(),
+            marginAmount
+        );
+        if (!okNewMargin) revert ForexEngine__StalePrice();
+
+        (bool okNotional, uint256 positionNotionalUsd) = _convertToUSD_safe(
+            _baseCollateral(),
+            marginAmount * leverage
+        );
+        if (!okNotional) revert ForexEngine__StalePrice();
+
+        uint256 newUsedMargin = s_marginUsed[user] + newMarginUsd;
+        uint256 requiredMarginUsd = (positionNotionalUsd *
+            INITIAL_MARGIN_PERCENT) / BPS_DIVISOR;
+
+        if (totalCollateralUsd < requiredMarginUsd)
             revert ForexEngine__InsufficientMargin();
+        if (
+            totalCollateralUsd * BPS_DIVISOR <
+            newUsedMargin * MIN_MARGIN_PERCENT
+        ) {
+            revert ForexEngine__InsufficientMargin();
+        }
+    }
+
+    function _validateTokenAddress(address token) internal view {
+        if (token == address(0)) revert ForexEngine__NotAllowedZeroAddress();
+        if (!token.isContract()) revert ForexEngine__InvalidTokenAddress();
+    }
+
+    function _validatePriceFeed(address feed) internal view {
+        if (feed == address(0)) revert ForexEngine__NotAllowedZeroAddress();
+        if (!feed.isContract()) revert ForexEngine__InvalidTokenAddress();
+        try AggregatorV3Interface(feed).decimals() returns (uint8) {} catch {
+            revert ForexEngine__InvalidTokenAddress();
         }
     }
 
@@ -776,12 +1161,10 @@ contract ForexEngine is ReentrancyGuard, Ownable {
         bool isLong
     ) internal pure {
         if (isLong) {
-            if (takeProfitPrice > 0 && takeProfitPrice <= entryPrice) {
+            if (takeProfitPrice > 0 && takeProfitPrice <= entryPrice)
                 revert ForexEngine__InvalidTpSlPrices();
-            }
-            if (stopLossPrice > 0 && stopLossPrice >= entryPrice) {
+            if (stopLossPrice > 0 && stopLossPrice >= entryPrice)
                 revert ForexEngine__InvalidTpSlPrices();
-            }
             if (
                 stopLossPrice > 0 &&
                 takeProfitPrice > 0 &&
@@ -790,12 +1173,10 @@ contract ForexEngine is ReentrancyGuard, Ownable {
                 revert ForexEngine__InvalidTpSlPrices();
             }
         } else {
-            if (takeProfitPrice > 0 && takeProfitPrice >= entryPrice) {
+            if (takeProfitPrice > 0 && takeProfitPrice >= entryPrice)
                 revert ForexEngine__InvalidTpSlPrices();
-            }
-            if (stopLossPrice > 0 && stopLossPrice <= entryPrice) {
+            if (stopLossPrice > 0 && stopLossPrice <= entryPrice)
                 revert ForexEngine__InvalidTpSlPrices();
-            }
             if (
                 stopLossPrice > 0 &&
                 takeProfitPrice > 0 &&
@@ -804,172 +1185,166 @@ contract ForexEngine is ReentrancyGuard, Ownable {
                 revert ForexEngine__InvalidTpSlPrices();
             }
         }
+        if (
+            takeProfitPrice > 0 &&
+            !_hasSufficientPriceMovement(entryPrice, takeProfitPrice)
+        ) {
+            revert ForexEngine__InvalidTpSlPrices();
+        }
+        if (
+            stopLossPrice > 0 &&
+            !_hasSufficientPriceMovement(entryPrice, stopLossPrice)
+        ) {
+            revert ForexEngine__InvalidTpSlPrices();
+        }
     }
 
     function _hasSufficientPriceMovement(
         uint256 entryPrice,
         uint256 currentPrice
     ) internal pure returns (bool) {
-        uint256 priceChange = currentPrice > entryPrice
-            ? currentPrice.sub(entryPrice).mul(BPS_DIVISOR).div(entryPrice)
-            : entryPrice.sub(currentPrice).mul(BPS_DIVISOR).div(entryPrice);
-
-        return priceChange >= MIN_PRICE_MOVEMENT;
+        uint256 priceChangeBps = currentPrice > entryPrice
+            ? ((currentPrice - entryPrice) * BPS_DIVISOR) / entryPrice
+            : ((entryPrice - currentPrice) * BPS_DIVISOR) / entryPrice;
+        return priceChangeBps >= MIN_PRICE_MOVEMENT;
     }
 
+    // >>> Liquidation buffer baked into liquidationPrice <<<
     function _calculateLiquidationPrice(
         uint256 entryPrice,
         bool isLong,
         uint256 leverage
-    ) internal pure returns (uint256) {
-        uint256 leverageFactor = PRECISION.div(leverage);
-        uint256 marginBuffer = MIN_MARGIN_PERCENT.mul(PRECISION).div(
-            BPS_DIVISOR
-        );
+    ) internal view returns (uint256) {
+        uint256 leverageFactor = PRECISION / leverage; // 1/leverage in 1e18
+        uint256 marginBuffer = (MIN_MARGIN_PERCENT * PRECISION) / BPS_DIVISOR; // maint in 1e18
+        uint256 bufferAdj = (minLiquidationBuffer * PRECISION) / BPS_DIVISOR; // buffer in 1e18
 
         if (isLong) {
             return
-                entryPrice
-                    .mul(PRECISION.sub(leverageFactor).add(marginBuffer))
-                    .div(PRECISION);
+                (entryPrice *
+                    (PRECISION - leverageFactor + marginBuffer + bufferAdj)) /
+                PRECISION;
         } else {
             return
-                entryPrice
-                    .mul(PRECISION.add(leverageFactor).sub(marginBuffer))
-                    .div(PRECISION);
+                (entryPrice *
+                    (PRECISION + leverageFactor - marginBuffer - bufferAdj)) /
+                PRECISION;
         }
     }
 
-    function _convertToUSD(
-        address token,
-        uint256 amount
+    // ----- Notional & Units helpers -----
+
+    function _notionalUsd1e18(
+        uint256 marginAmount,
+        uint256 leverage,
+        address collateralToken
     ) internal view returns (uint256) {
-        AggregatorV3Interface priceFeed = AggregatorV3Interface(
-            s_priceFeeds[token]
-        );
-        (, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
-        _validatePrice(price, updatedAt);
-
-        uint8 tokenDecimals = ERC20(token).decimals();
-        uint8 priceDecimals = priceFeed.decimals();
-
-        return
-            amount.mul(uint256(price)).mul(10 ** (18 - priceDecimals)).div(
-                10 ** tokenDecimals
-            );
+        uint256 marginUsd = _convertToUSD(collateralToken, marginAmount); // strict (reverts on stale)
+        return marginUsd * leverage;
     }
 
-    function _getTotalCollateralValue(
-        address user
-    ) internal view returns (uint256 totalValue) {
-        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
-            address token = s_collateralTokens[i];
-            uint256 amount = s_collateralDeposited[user][token];
-            if (amount == 0) continue;
+    function _baseUnitsForNotional(
+        uint256 notionalUsd1e18,
+        uint256 entryPrice, // feed native units
+        address syntheticToken, // sToken
+        address priceFeed // base/USD feed
+    ) internal view returns (uint256) {
+        uint8 stDec = ERC20(syntheticToken).decimals();
+        uint8 pDec = AggregatorV3Interface(priceFeed).decimals();
 
-            totalValue = totalValue.add(_convertToUSD(token, amount));
-        }
+        uint256 price1e18 = _normalizePrice1e18(int256(entryPrice), pDec); // USD per 1 base in 1e18
+        uint256 base1e18 = (notionalUsd1e18 * PRECISION) / price1e18; // base amount in 1e18
+
+        if (stDec >= 18) return base1e18 * (10 ** (stDec - 18));
+        return base1e18 / (10 ** (18 - stDec));
     }
 
-    // ========== View Functions ==========
+    // ===================== Views =====================
 
     function getUserMarginRatio(
         address user
     ) public view returns (uint256 marginRatioBps) {
-        // Calculate total collateral value in USD
-        uint256 totalCollateralUsd = _getTotalCollateralValue(user);
-
-        // Calculate used margin in USD
+        uint256 totalCollateralUsd = _getTotalCollateralValue(user); // strict
         uint256 usedMarginUsd = s_marginUsed[user];
 
-        if (usedMarginUsd == 0) {
-            return BPS_DIVISOR; // 100% margin ratio if no positions open
-        }
+        if (usedMarginUsd == 0) return BPS_DIVISOR;
 
-        // Calculate unrealized PnL from open positions
         int256 totalUnrealizedPnl = 0;
         Position[] memory positions = s_userPositions[user];
 
         for (uint256 i = 0; i < positions.length; i++) {
             if (!positions[i].isOpen) continue;
 
-            uint256 currentPrice = getDerivedPrice(positions[i].pair, "USD");
-            uint256 entryPrice = positions[i].entryPrice;
-            uint256 size = positions[i].tradeSize;
+            address feedAddr = s_syntheticPriceFeeds[positions[i].pair];
+            if (feedAddr == address(0)) revert ForexEngine__InvalidBaseFeed();
+            (, int256 curP, , uint256 updatedAt, ) = AggregatorV3Interface(
+                feedAddr
+            ).latestRoundData();
+            _validatePrice(curP, updatedAt);
 
-            if (positions[i].isLong) {
-                totalUnrealizedPnl +=
-                    (int256(size) *
-                        (int256(currentPrice) - int256(entryPrice))) /
-                    int256(entryPrice);
-            } else {
-                totalUnrealizedPnl +=
-                    (int256(size) *
-                        (int256(entryPrice) - int256(currentPrice))) /
-                    int256(entryPrice);
-            }
+            uint8 pDec = AggregatorV3Interface(feedAddr).decimals();
+            uint256 current1e18 = _normalizePrice1e18(curP, pDec);
+            uint256 entry1e18 = _normalizePrice1e18(
+                int256(positions[i].entryPrice),
+                pDec
+            );
+
+            address sToken = s_syntheticTokens[positions[i].pair];
+            uint8 stDec = ERC20(sToken).decimals();
+            uint256 base1e18 = (stDec >= 18)
+                ? positions[i].baseUnits * (10 ** (18 - stDec))
+                : positions[i].baseUnits / (10 ** (18 - stDec));
+
+            int256 pnl = positions[i].isLong
+                ? (int256(base1e18) *
+                    (int256(current1e18) - int256(entry1e18))) /
+                    int256(PRECISION)
+                : (int256(base1e18) *
+                    (int256(entry1e18) - int256(current1e18))) /
+                    int256(PRECISION);
+
+            totalUnrealizedPnl += pnl;
         }
 
-        // Calculate equity (collateral + PnL)
-        int256 equity = int256(totalCollateralUsd) + totalUnrealizedPnl;
-        if (equity <= 0) {
-            return 0; // Completely underwater
-        }
+        int256 equity = int256(totalCollateralUsd) + totalUnrealizedPnl; // 1e18
+        if (equity <= 0) return 0;
 
-        // Return margin ratio in basis points (e.g., 3000 = 30%)
-        // Fixed: Convert all values to uint256 before division
         marginRatioBps = (uint256(equity) * BPS_DIVISOR) / usedMarginUsd;
+    }
+
+    function _price1e18(address feed) internal view returns (uint256) {
+        (, int256 p, , uint256 updatedAt, ) = AggregatorV3Interface(feed)
+            .latestRoundData();
+        _validatePrice(p, updatedAt);
+        uint8 d = AggregatorV3Interface(feed).decimals();
+        return _normalizePrice1e18(p, d);
     }
 
     function getDerivedPrice(
         string memory baseCurrency,
         string memory quoteCurrency
     ) public view returns (uint256) {
-        // Handle USD as base currency
-        if (keccak256(bytes(baseCurrency)) == keccak256(bytes("USD"))) {
-            address feed = s_syntheticPriceFeeds[quoteCurrency];
-            require(feed != address(0), "Invalid quote feed");
+        bytes32 USD = keccak256(bytes("USD"));
+        bytes32 b = keccak256(bytes(baseCurrency));
+        bytes32 q = keccak256(bytes(quoteCurrency));
 
-            (, int256 price, , , ) = AggregatorV3Interface(feed)
-                .latestRoundData();
-            return
-                uint256(price) *
-                (10 ** (18 - AggregatorV3Interface(feed).decimals()));
-        }
-
-        // Handle USD as quote currency
-        if (keccak256(bytes(quoteCurrency)) == keccak256(bytes("USD"))) {
-            address feed = s_syntheticPriceFeeds[baseCurrency];
-            require(feed != address(0), "Invalid base feed");
-
-            (, int256 price, , , ) = AggregatorV3Interface(feed)
-                .latestRoundData();
-            return
-                uint256(price) *
-                (10 ** (18 - AggregatorV3Interface(feed).decimals()));
-        }
-
-        // Handle other currency pairs
         address baseFeed = s_syntheticPriceFeeds[baseCurrency];
         address quoteFeed = s_syntheticPriceFeeds[quoteCurrency];
-        require(
-            baseFeed != address(0) && quoteFeed != address(0),
-            "Invalid feeds"
-        );
 
-        (, int256 basePrice, , , ) = AggregatorV3Interface(baseFeed)
-            .latestRoundData();
-        (, int256 quotePrice, , , ) = AggregatorV3Interface(quoteFeed)
-            .latestRoundData();
+        if (q == USD) {
+            if (baseFeed == address(0)) revert ForexEngine__InvalidBaseFeed();
+            return _price1e18(baseFeed); // base/USD in 1e18
+        }
+        if (b == USD) {
+            if (quoteFeed == address(0)) revert ForexEngine__InvalidQuoteFeed();
+            return _price1e18(quoteFeed); // quote/USD in 1e18
+        }
 
-        uint8 baseDecimals = AggregatorV3Interface(baseFeed).decimals();
-        uint8 quoteDecimals = AggregatorV3Interface(quoteFeed).decimals();
-
-        uint256 scaledBase = uint256(basePrice) * (10 ** (18 - baseDecimals));
-        uint256 scaledQuote = uint256(quotePrice) *
-            (10 ** (18 - quoteDecimals));
-
-        return scaledBase.mul(PRECISION).div(scaledQuote);
+        if (baseFeed == address(0) || quoteFeed == address(0))
+            revert ForexEngine__InvalidFeeds();
+        uint256 baseUsd1e18 = _price1e18(baseFeed);
+        uint256 quoteUsd1e18 = _price1e18(quoteFeed);
+        return (baseUsd1e18 * PRECISION) / quoteUsd1e18; // base/quote in 1e18
     }
 
     function getSyntheticTokenAddress(
@@ -1016,4 +1391,127 @@ contract ForexEngine is ReentrancyGuard, Ownable {
     function getRealizedPnl(address user) external view returns (int256) {
         return s_realizedPnl[user];
     }
+
+    function getAllUserPositions(
+        address user
+    ) external view returns (Position[] memory) {
+        return s_userPositions[user];
+    }
+
+    function getOpenPositionIds(
+        address user,
+        string calldata pair
+    ) external view returns (uint256[] memory) {
+        return s_openPositionIds[user][pair];
+    }
+
+    // Exposed for UI
+    function getOpenPositionCount(
+        address user
+    ) external view returns (uint256) {
+        return s_openPositionCount[user];
+    }
+
+    // ---- Internal tracking helpers ----
+
+    function _trackOpenPosition(
+        address user,
+        string memory pair,
+        uint256 id
+    ) internal {
+        s_openPosIndex[user][pair][id] = s_openPositionIds[user][pair].length;
+        s_openPositionIds[user][pair].push(id);
+    }
+
+    function _untrackOpenPosition(
+        address user,
+        string memory pair,
+        uint256 id
+    ) internal {
+        uint256[] storage arr = s_openPositionIds[user][pair];
+        if (arr.length == 0) return;
+
+        uint256 idx = s_openPosIndex[user][pair][id];
+        if (idx >= arr.length) return;
+
+        uint256 lastId = arr[arr.length - 1];
+        arr[idx] = lastId;
+        s_openPosIndex[user][pair][lastId] = idx;
+        arr.pop();
+
+        delete s_openPosIndex[user][pair][id];
+    }
+
+    // --- Safe normalization --- //
+    function _normalizePrice1e18(
+        int32 /*unused*/,
+        uint8 /*unused*/
+    ) internal pure returns (uint256) {
+        revert();
+    } // stub to keep selector slots tidy (won't be called)
+
+    function _normalizePrice1e18(
+        int256 price,
+        uint8 priceDecimals
+    ) internal pure returns (uint256) {
+        if (price <= 0) revert ForexEngine__InvalidPrice();
+        return (uint256(price) * PRECISION) / (10 ** priceDecimals);
+    }
+
+    function _normalizeAmount1e18(
+        uint256 amt,
+        uint8 tokenDecimals
+    ) internal pure returns (uint256) {
+        return (amt * PRECISION) / (10 ** tokenDecimals);
+    }
+
+    function _usdFromToken(
+        uint256 amount,
+        uint8 tokenDecimals,
+        int256 price,
+        uint8 priceDecimals
+    ) internal pure returns (uint256) {
+        uint256 p1e18 = _normalizePrice1e18(price, priceDecimals);
+        uint256 a1e18 = _normalizeAmount1e18(amount, tokenDecimals);
+        return (a1e18 * p1e18) / PRECISION; // USD 1e18
+    }
+
+    // Strict USD conversion (reverts on stale/invalid)
+    function _convertToUSD(
+        address token,
+        uint256 amount
+    ) internal view returns (uint256) {
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(
+            s_priceFeeds[token]
+        );
+        (, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
+        _validatePrice(price, updatedAt);
+
+        uint8 tokenDecimals = ERC20(token).decimals();
+        uint8 priceDecimals = priceFeed.decimals();
+
+        return _usdFromToken(amount, tokenDecimals, price, priceDecimals);
+    }
+
+    function _getTotalCollateralValue(
+        address user
+    ) internal view returns (uint256 totalValue) {
+        for (uint256 i = 0; i < s_collateralTokens.length; i++) {
+            address token = s_collateralTokens[i];
+            uint256 amount = s_collateralDeposited[user][token];
+            if (amount == 0) continue;
+            totalValue = totalValue + _convertToUSD(token, amount);
+        }
+    }
+
+    // ---- Choose base collateral dynamically (prefer WETH if set) ----
+    function _baseCollateral() internal view returns (address) {
+        if (s_weth != address(0)) return s_weth;
+        if (s_collateralTokens.length == 0)
+            revert ForexEngine__NoCollateralTokens();
+        return s_collateralTokens[0];
+    }
+
+    /// Accept ETH for WETH unwraps
+    receive() external payable {}
 }

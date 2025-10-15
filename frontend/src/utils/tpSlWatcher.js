@@ -1,74 +1,86 @@
-// utils/tpSlWatcher.js
+// import { getForexEngineContract } from "./contract";
+// import { ethers } from "ethers";
 
+// // Optional: You can still keep this for other uses
+// export async function fetchOnChainPrice(symbol) {
+//     if (typeof window.ethereum === "undefined") {
+//         console.error("MetaMask not found");
+//         return null;
+//     }
+
+//     try {
+//         const provider = new ethers.BrowserProvider(window.ethereum);
+//         const contract = getForexEngineContract(provider);
+//         const [base, quote] = symbol.split("/");
+
+//         const raw = await contract.getDerivedPrice(base, quote);
+//         return parseFloat(ethers.formatUnits(raw, 18));
+//     } catch (err) {
+//         console.error("Failed to fetch on-chain price:", err);
+//         return null;
+//     }
+// }
+
+// // ✅ REPLACED: This is the new TP/SL watcher using the updated smart contract
+// export async function watchTpSl(userAddress) {
+//     if (typeof window.ethereum === "undefined") return;
+
+//     try {
+//         const provider = new ethers.BrowserProvider(window.ethereum);
+//         const signer = await provider.getSigner();
+//         const contract = getForexEngineContract(signer);
+
+//         const positions = await contract.getAllUserPositions(userAddress);
+
+//         for (let i = 0; i < positions.length; i++) {
+//             const pos = positions[i];
+//             if (!pos.isOpen) continue;
+
+//             const symbol = pos.pair; // must match what you store on-chain, e.g., "EUR/USD"
+//             try {
+//                 const tx = await contract.checkTpSlAndClose(userAddress, symbol);
+//                 await tx.wait();
+//                 console.log(`✅ TP/SL check executed for ${symbol}`);
+//             } catch (err) {
+//                 const msg = err?.message || err?.toString();
+//                 if (!msg.includes("PriceNotAtTrigger")) {
+//                     console.error(`❌ Failed to check TP/SL for ${symbol}:`, err);
+//                 }
+//             }
+//         }
+//     } catch (err) {
+//         console.error("💥 Error in TP/SL watcher:", err);
+//     }
+// }
+
+// frontend/src/utils/tpSlWatcher.js
 import { getForexEngineContract } from "./contract";
 import { ethers } from "ethers";
 
-// ✅ Helper: fetch on-chain price using getDerivedPrice()
-async function fetchOnChainPrice(symbol) {
-    if (typeof window.ethereum === "undefined") {
-        console.error("❌ MetaMask not found");
-        return null;
-    }
+/**
+ * Still useful for charts/UI reads — safe, read-only.
+ */
+export async function fetchOnChainPrice(symbol) {
+    if (typeof window.ethereum === "undefined") return null;
 
     try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-
         const provider = new ethers.BrowserProvider(window.ethereum);
         const contract = getForexEngineContract(provider);
-
-        const [base, quote] = symbol.split("/"); // e.g., "EUR/USD"
-        const priceRaw = await contract.getDerivedPrice(base, quote); // 18-decimals
-        const price = parseFloat(ethers.formatUnits(priceRaw, 18));
-        console.log(`🟢 On-chain price for ${symbol}: ${price}`);
-        return price;
+        const [base, quote] = symbol.split("/");
+        const raw = await contract.getDerivedPrice(base, quote);
+        return parseFloat(ethers.formatUnits(raw, 18));
     } catch (err) {
-        console.error("❌ Failed to fetch on-chain price:", err);
+        console.error("Failed to fetch on-chain price:", err);
         return null;
     }
 }
 
-// ✅ TP/SL Auto-Watcher
-export async function watchTpSl(userAddress) {
-    if (typeof window.ethereum === "undefined") {
-        console.error("❌ MetaMask not found");
-        return;
-    }
-
-    try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const contract = getForexEngineContract(provider);
-
-        const allPositions = await contract.getUserPositionsPaginated(userAddress, 0, 100);
-
-        for (let i = 0; i < allPositions.length; i++) {
-            const pos = allPositions[i];
-            if (!pos.isOpen) continue;
-
-            const symbol = pos.pair;
-            const currentPrice = await fetchOnChainPrice(symbol);
-            if (!currentPrice) continue;
-
-            const entryPrice = parseFloat(ethers.formatUnits(pos.entryPrice, 18));
-            const tp = parseFloat(ethers.formatUnits(pos.takeProfitPrice, 18));
-            const sl = parseFloat(ethers.formatUnits(pos.stopLossPrice, 18));
-            const isLong = pos.isLong;
-
-            const hitTP = isLong ? tp > 0 && currentPrice >= tp : tp > 0 && currentPrice <= tp;
-            const hitSL = isLong ? sl > 0 && currentPrice <= sl : sl > 0 && currentPrice >= sl;
-
-            if (hitTP || hitSL) {
-                try {
-                    const tx = await contract.closePosition(i);
-                    await tx.wait();
-                    console.log(`✅ Auto-closed position ${i} (${symbol}) at ${currentPrice} | TP: ${tp} | SL: ${sl}`);
-                } catch (err) {
-                    console.error(`❌ Failed to close position ${i} (${symbol})`, err);
-                }
-            }
-        }
-    } catch (err) {
-        console.error("❌ Error in TP/SL watcher:", err);
-    }
+/**
+ * TEMPORARILY DISABLED:
+ * We’re pausing automatic TP/SL checks to avoid reverts while we
+ * finalize fresh price feeds for all pairs.
+ */
+export async function watchTpSl(/* userAddress */) {
+    // no-op on purpose
+    return;
 }

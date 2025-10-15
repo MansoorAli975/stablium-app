@@ -1,32 +1,21 @@
-// src/components/Balances.jsx
-function Balances({ balances }) {
+import React from "react";
+
+const KNOWN_ROWS = ["WETH"]; // grow later if you add more collateral tokens
+
+const Balances = ({ balances = {} }) => {
     return (
-        <div className="balances-container">
-            <div className="balances-inner">
-                <h3 className="balances-heading">Your Balances</h3>
-                <div className="balance-boxes vertical">
-                    {Object.entries(balances).map(([symbol, amount]) => (
-                        <div
-                            key={symbol}
-                            className="balance-box row"
-                            role="listitem"
-                            aria-label={`${symbol} balance`}
-                        >
-                            <span className="balance-symbol">{symbol}</span>
-                            <span className="balance-amount">
-                                {typeof amount === "number"
-                                    ? amount.toLocaleString(undefined, {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 4,
-                                    })
-                                    : amount}
-                            </span>
-                        </div>
-                    ))}
-                </div>
+        <div className="balances-card">
+            <div className="balances-title">Your Balances</div>
+            <div className="balances-list">
+                {KNOWN_ROWS.map((sym) => (
+                    <div className="balance-row" key={sym}>
+                        <div className="balance-sym">{sym}</div>
+                        <div className="balance-val">{balances[sym] ?? "0"}</div>
+                    </div>
+                ))}
             </div>
         </div>
     );
-}
+};
 
 export default Balances;

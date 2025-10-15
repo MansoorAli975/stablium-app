@@ -1,6 +1,5 @@
 import { useEffect, useRef } from "react";
 import * as LightweightCharts from "lightweight-charts";
-import { fetchCandles } from "../utils/candleAPI";
 import ResizeObserver from "resize-observer-polyfill";
 
 const Chart = ({ selectedSymbol, forexPrice }) => {
@@ -8,7 +7,6 @@ const Chart = ({ selectedSymbol, forexPrice }) => {
     const chartRef = useRef(null);
     const candleSeriesRef = useRef(null);
     const priceLineRef = useRef(null);
-    const refreshInterval = useRef(null);
     const resizeObserverRef = useRef(null);
 
     // Mount chart once
@@ -74,34 +72,17 @@ const Chart = ({ selectedSymbol, forexPrice }) => {
         resizeObserverRef.current.observe(chartElement);
 
         return () => {
-            clearInterval(refreshInterval.current);
             resizeObserverRef.current?.disconnect();
             chart.remove();
         };
     }, []);
 
-    // Load candle data when symbol changes
-    useEffect(() => {
-        const loadCandles = async () => {
-            const candles = await fetchCandles(selectedSymbol);
-            if (candles?.length && candleSeriesRef.current) {
-                candleSeriesRef.current.setData(candles);
-                chartRef.current?.timeScale().fitContent();
-            }
-        };
-
-        loadCandles();
-        clearInterval(refreshInterval.current);
-        refreshInterval.current = setInterval(loadCandles, 60000);
-
-        return () => clearInterval(refreshInterval.current);
-    }, [selectedSymbol]);
-
     // Draw or update live price line from on-chain price
     useEffect(() => {
         if (!forexPrice || !candleSeriesRef.current) return;
-        const livePrice = forexPrice?.price ?? forexPrice?.p;
-        if (!livePrice || isNaN(livePrice)) return;
+
+        const livePrice = parseFloat(forexPrice);
+        if (isNaN(livePrice)) return;
 
         if (priceLineRef.current) {
             priceLineRef.current.applyOptions({ price: livePrice });
@@ -115,7 +96,7 @@ const Chart = ({ selectedSymbol, forexPrice }) => {
                 title: "Live",
             });
         }
-    }, [forexPrice?.price]);
+    }, [forexPrice]);
 
     return (
         <div className="chart-wrapper">
