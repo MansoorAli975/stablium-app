@@ -25,3 +25,5 @@ broadcast/**/run-*.json
 cache/
 
 !.env.example
+
+broadcast/**/run-latest.json
