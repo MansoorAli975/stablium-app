@@ -14,3 +14,12 @@ cache/
 # Vercel
 .vercel/
 .env
+.env
+
+# Secrets & env
+.env
+.env.*
+
+# Generated artifacts that may embed RPC URLs or keys
+broadcast/**/run-*.json
+cache/
