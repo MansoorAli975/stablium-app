@@ -1,6 +1,6 @@
 //urlhardcode
 // Update the provider to use Alchemy's RPC URL
-//provider = new ethers.JsonRpcProvider('https://eth-sepolia.g.alchemy.com/v2/k3fI7fjx7KvrzkLkMxsMiV-D-GD5Fh3B');
+//provider = new ethers.JsonRpcProvider('https://eth-sepolia.g.alchemy.com/v2/REDACTED');
 
 let stbeContract, stbContract, provider, signer, userAddress, wethContract;
 // Contract addresses (replace these with your actual contract addresses)
