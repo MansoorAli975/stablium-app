@@ -1,0 +1,26 @@
+# Default to LF in repo
+* text=auto eol=lf
+
+# Source & configs
+*.sol  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sh   text eol=lf
+
+# Windows scripts may keep CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# Binary files
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.pdf  binary
