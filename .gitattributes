@@ -14,7 +14,7 @@
 *.yaml text eol=lf
 *.sh   text eol=lf
 
-# Windows scripts may keep CRLF
+# Windows scripts keep CRLF
 *.bat  text eol=crlf
 *.cmd  text eol=crlf
 
