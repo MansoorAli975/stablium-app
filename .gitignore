@@ -23,3 +23,5 @@ cache/
 # Generated artifacts that may embed RPC URLs or keys
 broadcast/**/run-*.json
 cache/
+
+!.env.example
